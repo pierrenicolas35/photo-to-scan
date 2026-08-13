@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Traitement Justificatifs - CHU</title>
     
-    <!-- Librairie Cropper.js (Recadrage) -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    
-    <!-- Librairie jsPDF (Génération PDF côté client) -->
+    <!-- jsPDF pour l'export A4 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
@@ -27,10 +23,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
         .header { text-align: center; margin-bottom: 2rem; width: 100%; }
         .header h2 { margin: 0; }
-        .badge { color: #28a745; font-weight: bold; font-size: 0.9rem; }
+        .badge-secu { color: #28a745; font-weight: bold; font-size: 0.9rem; }
         
         .layout {
             display: grid;
@@ -38,6 +35,7 @@
             gap: 2rem;
             width: 100%;
             max-width: 1400px;
+            flex-grow: 1;
         }
         .panel {
             background: var(--panel);
@@ -49,7 +47,7 @@
             flex-direction: column;
         }
         
-        /* Zone de Drop */
+        /* Zone Drop & Work */
         #drop-zone {
             border: 2px dashed var(--primary);
             border-radius: 6px;
@@ -60,137 +58,218 @@
             justify-content: center;
             cursor: pointer;
             background-color: #f8f9fa;
-            transition: background-color 0.2s;
         }
-        #drop-zone.hover { background-color: #e2e6ea; border-color: #004085; }
+        #workspace { display: none; flex-direction: column; height: 100%; }
         
-        /* Conteneurs de travail */
-        #workspace { display: none; flex-grow: 1; }
-        .img-container {
+        .crop-wrapper {
+            position: relative;
             width: 100%;
             height: 60vh;
             background-color: #e9ecef;
             margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        img { max-width: 100%; }
         
-        /* Rendu Canvas (Correction de l'écrasement) */
-        canvas {
+        #source-canvas {
+            position: absolute;
+            cursor: crosshair;
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain; /* Maintient les proportions */
+        }
+
+        /* Aperçu & Zoom */
+        .preview-wrapper {
+            width: 100%; height: 50vh; background: #e9ecef;
+            overflow: auto;
+            border-radius: 4px; border: 1px solid var(--border);
+            position: relative;
+        }
+        #result-canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             background-color: white;
+            transition: width 0.1s ease;
+        }
+
+        /* Indicateurs Qualité */
+        .qc-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid var(--border);
+            margin-bottom: 1rem; font-size: 0.85rem; font-weight: 600;
+        }
+        .qc-status { padding: 4px 8px; border-radius: 4px; color: white; text-align: center; }
+        .qc-optimal { background-color: #28a745; }
+        .qc-warning { background-color: #fd7e14; }
+        .qc-danger { background-color: #dc3545; }
+
+        /* Banner d'alerte globale image source */
+        #source-alert-banner {
+            display: none;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        #source-alert-banner.alert-danger {
+            background-color: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
+        }
+        #source-alert-banner.alert-warning {
+            background-color: #fff3cd;
+            color: #664d03;
+            border: 1px solid #ffecb5;
+        }
+        #source-alert-banner.alert-success {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
         }
 
         /* Contrôles */
-        .controls-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 1rem;
+        .controls-row { display: flex; gap: 10px; margin-top: auto; }
+        .toolbar-zoom { 
+            display: flex; gap: 5px; align-items: center; 
+            justify-content: center; margin-bottom: 10px; 
         }
+        
         button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            font-weight: 600;
-            cursor: pointer;
-            flex: 1;
+            background-color: var(--primary); color: white; border: none;
+            padding: 12px 15px; border-radius: 4px; font-weight: 600; cursor: pointer; flex: 1;
         }
         button:hover { opacity: 0.9; }
         button.secondary { background-color: #6c757d; }
-        button.success { background-color: #28a745; margin-top: auto; padding: 15px;}
+        button.success { background-color: #28a745; margin-bottom: 10px;}
+        button.outline { background-color: transparent; border: 2px solid #6c757d; color: #6c757d; }
+        button.icon-btn { flex: 0; padding: 5px 12px; font-size: 1.2rem; }
         
-        label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
+        label { font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.9rem;}
         input[type="range"] { width: 100%; margin-bottom: 1rem; }
+        
+        .footer { margin-top: 2rem; color: #6c757d; font-size: 0.9rem; font-weight: 500; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h2>Optimisation des justificatifs (Arrêts de travail)</h2>
-        <span class="badge">■ Traitement 100% Local - Export PDF A4</span>
+        <span class="badge-secu">■ Traitement 100% Local - Diagnostic Qualité & Redressement</span>
     </div>
 
     <div class="layout">
-        <!-- PANNEAU GAUCHE : Import et Recadrage -->
+        <!-- PANNEAU GAUCHE : Import & Recadrage Persp. -->
         <div class="panel">
-            <h3 style="margin-top: 0;">1. Import & Recadrage</h3>
+            <h3 style="margin-top: 0;">1. Import & Diagnostic Source</h3>
             
-            <!-- Zone de Drop Active -->
             <div id="drop-zone">
-                <svg width="48" height="48" fill="none" stroke="#0056b3" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 10px;">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                </svg>
                 <p style="margin:0; font-weight: 600;">Glissez la photo ici</p>
-                <p style="margin:5px 0 0 0; font-size: 0.9rem; color: #6c757d;">ou cliquez pour parcourir</p>
                 <input type="file" id="file-input" accept="image/*" style="display: none;">
             </div>
 
-            <!-- Espace de recadrage (masqué par défaut) -->
             <div id="workspace">
+                <!-- Alerte globale sur l'image source -->
+                <div id="source-alert-banner"></div>
+
+                <!-- Indicateurs de contrôle qualité de la photo brute -->
+                <div class="qc-bar" style="flex-wrap: wrap; gap: 6px;">
+                    <div>
+                        <span>Netteté : </span>
+                        <strong id="sqc-sharpness-val">--</strong>
+                    </div>
+                    <div>
+                        <span>Luminosité : </span>
+                        <strong id="sqc-brightness-val">--</strong>
+                    </div>
+                    <span id="sqc-badge" class="qc-status qc-optimal" style="margin-left: auto;">Diagnostic</span>
+                </div>
+
+                <div class="crop-wrapper" id="crop-wrapper">
+                    <canvas id="source-canvas"></canvas>
+                </div>
                 <div class="controls-row">
-                    <button type="button" class="secondary" onclick="cropper.rotate(-90)">↺ Pivoter Gauche</button>
-                    <button type="button" class="secondary" onclick="cropper.rotate(90)">Pivoter Droite ↻</button>
+                    <button type="button" class="secondary" onclick="rotateSource(-90)">↺ Pivoter Gauche</button>
+                    <button type="button" class="secondary" onclick="rotateSource(90)">Pivoter Droite ↻</button>
+                    <button type="button" class="secondary" onclick="resetPoints()">Réinitialiser coins</button>
                 </div>
-                <div class="img-container">
-                    <img id="image-source" src="">
-                </div>
-                <button type="button" onclick="processImage()" style="width: 100%;">Générer l'aperçu >></button>
             </div>
         </div>
 
-        <!-- PANNEAU DROIT : Réglages et Export PDF -->
+        <!-- PANNEAU DROIT : Réglages, Qualité & Aperçu -->
         <div class="panel">
             <h3 style="margin-top: 0;">2. Réglage & Impression</h3>
             
             <label for="threshold">Contraste (Suppression des ombres)</label>
             <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyBinarization()">
             
-            <div class="img-container" style="background: #e9ecef;">
+            <div class="qc-bar">
+                <span>Rendu impression :</span>
+                <span id="qc-badge" class="qc-status qc-optimal">En attente</span>
+                <span id="qc-ratio" style="color: #6c757d; font-size: 0.8rem;">Encre : --%</span>
+            </div>
+            
+            <div class="toolbar-zoom">
+                <span style="font-size: 0.8rem; font-weight: bold; color: #6c757d; margin-right: 10px;">Zoom :</span>
+                <button type="button" class="secondary icon-btn" onclick="adjustZoom(-20)">-</button>
+                <span id="zoom-value" style="width: 50px; text-align: center; font-size: 0.9rem; font-weight: bold;">100%</span>
+                <button type="button" class="secondary icon-btn" onclick="adjustZoom(20)">+</button>
+            </div>
+
+            <div class="preview-wrapper" id="preview-wrapper">
                 <canvas id="result-canvas"></canvas>
             </div>
             
-            <button type="button" class="success" onclick="exportPDF()">↓ Télécharger en PDF (Format A4)</button>
+            <div style="display: flex; flex-direction: column; margin-top: 1rem;">
+                <button type="button" class="success" onclick="exportPDF()">↓ Télécharger en PDF (Format A4)</button>
+                <button type="button" class="outline" onclick="resetApp()">Scanner un nouveau document</button>
+            </div>
         </div>
     </div>
 
+    <div class="footer">
+        Application développée par P.NICOLAS
+    </div>
+
     <script>
-        let cropper;
-        let croppedCanvasData;
+        let rawImage = new Image();
+        let corners = [];
+        let activePoint = -1;
+        let currentZoom = 100;
+        let unbinarizedCanvas = document.createElement('canvas');
+
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const workspace = document.getElementById('workspace');
-        const imageSource = document.getElementById('image-source');
+        const sourceCanvas = document.getElementById('source-canvas');
+        const sCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
+        
         const resultCanvas = document.getElementById('result-canvas');
-        const ctx = resultCanvas.getContext('2d', { willReadFrequently: true });
+        const rCtx = resultCanvas.getContext('2d', { willReadFrequently: true });
+        
+        const qcBadge = document.getElementById('qc-badge');
+        const qcRatio = document.getElementById('qc-ratio');
+        const zoomValue = document.getElementById('zoom-value');
 
-        // --- 1. GESTION DU DRAG & DROP ---
+        // Éléments du diagnostic source
+        const sqcSharpnessVal = document.getElementById('sqc-sharpness-val');
+        const sqcBrightnessVal = document.getElementById('sqc-brightness-val');
+        const sqcBadge = document.getElementById('sqc-badge');
+        const sourceAlertBanner = document.getElementById('source-alert-banner');
+
+        // --- 1. DRAG & DROP ---
         dropZone.addEventListener('click', () => fileInput.click());
-        
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('hover');
-        });
-        
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('hover');
-        });
-        
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('hover');
-            if (e.dataTransfer.files.length > 0) {
-                loadFile(e.dataTransfer.files[0]);
-            }
+            if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
         });
-
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) loadFile(e.target.files[0]);
         });
@@ -198,101 +277,379 @@
         function loadFile(file) {
             if (!file.type.startsWith('image/')) return;
             const reader = new FileReader();
-            reader.onload = (e) => initCropper(e.target.result);
+            reader.onload = (e) => {
+                rawImage.onload = () => {
+                    dropZone.style.display = 'none';
+                    workspace.style.display = 'flex';
+                    setupSourceCanvas();
+                    analyzeSourceImage(); // Lancement du contrôle qualité d'emblée
+                    resetPoints();
+                };
+                rawImage.src = e.target.result;
+            };
             reader.readAsDataURL(file);
         }
 
-        // --- 2. INITIALISATION DU RECADRAGE ---
-        function initCropper(imageSrc) {
-            dropZone.style.display = 'none';
-            workspace.style.display = 'flex';
-            imageSource.src = imageSrc;
-            
-            if (cropper) cropper.destroy();
-            
-            cropper = new Cropper(imageSource, {
-                viewMode: 1,
-                dragMode: 'move',
-                autoCropArea: 0.95,
-                guides: true,
-                center: true,
-                background: false
+        // --- 1.BIS : ANALYSE QUALITÉ IMAGE SOURCE (FLOU + LUMINOSITÉ) ---
+        function analyzeSourceImage() {
+            // Création d'un sous-canvas basse résolution pour un traitement instantané
+            const checkCanvas = document.createElement('canvas');
+            const maxDim = 600;
+            let w = rawImage.width;
+            let h = rawImage.height;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                else { w = Math.round((w * maxDim) / h); h = maxDim; }
+            }
+            checkCanvas.width = w;
+            checkCanvas.height = h;
+            const cCtx = checkCanvas.getContext('2d', { willReadFrequently: true });
+            cCtx.drawImage(rawImage, 0, 0, w, h);
+
+            const imageData = cCtx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+
+            // 1. Matrice de luminance en niveaux de gris
+            const gray = new Float32Array(w * h);
+            let sumLuminance = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                gray[i / 4] = lum;
+                sumLuminance += lum;
+            }
+
+            const avgBrightness = sumLuminance / (w * h); // Luminosité moyenne (0 à 255)
+
+            // 2. Calcul de la variance du Laplacien (Détection du flou)
+            let laplacianSum = 0;
+            let count = 0;
+            const laplacianValues = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = y * w + x;
+                    // Noyau Laplacien 3x3 standard
+                    const lap = Math.abs(
+                        4 * gray[idx] -
+                        gray[idx - 1] - gray[idx + 1] -
+                        gray[idx - w] - gray[idx + w]
+                    );
+                    laplacianValues.push(lap);
+                    laplacianSum += lap;
+                    count++;
+                }
+            }
+
+            const meanLap = laplacianSum / count;
+            let varianceSum = 0;
+            for (let i = 0; i < laplacianValues.length; i++) {
+                varianceSum += Math.pow(laplacianValues[i] - meanLap, 2);
+            }
+            const blurScore = varianceSum / count; // Score de netteté (Variance du Laplacien)
+
+            // Interprétation des scores
+            displaySourceQualityReport(blurScore, avgBrightness);
+        }
+
+        function displaySourceQualityReport(blurScore, brightness) {
+            sqcSharpnessVal.textContent = Math.round(blurScore);
+            sqcBrightnessVal.textContent = `${Math.round((brightness / 255) * 100)}%`;
+
+            // Seuils empiriques ajustés pour documents texte photographiés
+            const isTooBlurry = blurScore < 100;
+            const isSlightlyBlurry = blurScore >= 100 && blurScore < 250;
+            const isDark = brightness < 70;
+            const isVeryDark = brightness < 45;
+
+            sqcBadge.className = 'qc-status';
+            sourceAlertBanner.className = '';
+
+            if (isTooBlurry || isVeryDark) {
+                // Image inexploitable
+                sqcBadge.textContent = 'Photo inexploitable';
+                sqcBadge.classList.add('qc-danger');
+                sourceAlertBanner.classList.add('alert-danger');
+                sourceAlertBanner.style.display = 'block';
+
+                let cause = [];
+                if (isTooBlurry) cause.push("Image trop floue (manque de mise au point ou bougé)");
+                if (isVeryDark) cause.push("Éclairage insuffisant / Sombre");
+
+                sourceAlertBanner.innerHTML = `⚠️ <strong>Attention :</strong> ${cause.join(' et ')}. La binarisation risque de rendre le texte totalement illisible. Demandant une nouvelle photo à l'agent.`;
+            } else if (isSlightlyBlurry || isDark) {
+                // Image dégradée mais potentiellement exploitable
+                sqcBadge.textContent = 'Qualité moyenne';
+                sqcBadge.classList.add('qc-warning');
+                sourceAlertBanner.classList.add('alert-warning');
+                sourceAlertBanner.style.display = 'block';
+
+                let hint = [];
+                if (isSlightlyBlurry) hint.push("Légèrement floue");
+                if (isDark) hint.push("Lumière faible");
+
+                sourceAlertBanner.innerHTML = `⚠️ <strong>Avertissement :</strong> Photo ${hint.join(' & ')}. Ajustez finement le curseur de contraste à droite pour préserver le texte.`;
+            } else {
+                // Image optimale
+                sqcBadge.textContent = 'Excellente photo';
+                sqcBadge.classList.add('qc-optimal');
+                sourceAlertBanner.classList.add('alert-success');
+                sourceAlertBanner.style.display = 'block';
+                sourceAlertBanner.innerHTML = `✓ <strong>Photo conforme :</strong> Bonne netteté et luminosité optimale. Le traitement sera très net.`;
+            }
+        }
+
+        // --- 2. GESTION DU CANVAS ET DES COINS DE PERSPECTIVE ---
+        function setupSourceCanvas() {
+            sourceCanvas.width = rawImage.width;
+            sourceCanvas.height = rawImage.height;
+            drawSource();
+        }
+
+        function resetPoints() {
+            const w = sourceCanvas.width;
+            const h = sourceCanvas.height;
+            const padX = w * 0.05;
+            const padY = h * 0.05;
+
+            corners = [
+                { x: padX, y: padY },         // Haut-Gauche
+                { x: w - padX, y: padY },     // Haut-Droit
+                { x: w - padX, y: h - padY }, // Bas-Droit
+                { x: padX, y: h - padY }      // Bas-Gauche
+            ];
+            drawSource();
+            processWarp();
+        }
+
+        function drawSource() {
+            sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+            sCtx.drawImage(rawImage, 0, 0);
+
+            // Dessiner le polygone de sélection
+            sCtx.beginPath();
+            sCtx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < 4; i++) {
+                sCtx.lineTo(corners[i].x, corners[i].y);
+            }
+            sCtx.closePath();
+            sCtx.fillStyle = 'rgba(0, 86, 179, 0.15)';
+            sCtx.fill();
+            sCtx.strokeStyle = '#0056b3';
+            sCtx.lineWidth = Math.max(3, sourceCanvas.width / 300);
+            sCtx.stroke();
+
+            // Dessiner les poignées aux 4 coins
+            const radius = Math.max(10, sourceCanvas.width / 80);
+            corners.forEach((pt, idx) => {
+                sCtx.beginPath();
+                sCtx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+                sCtx.fillStyle = '#ffffff';
+                sCtx.fill();
+                sCtx.strokeStyle = '#0056b3';
+                sCtx.lineWidth = radius / 3;
+                sCtx.stroke();
             });
         }
 
-        // --- 3. TRAITEMENT ET BINARISATION ---
-        function processImage() {
-            if (!cropper) return;
+        // --- INTERACTION SOURIS / TOUCH ---
+        function getCanvasCoords(e) {
+            const rect = sourceCanvas.getBoundingClientRect();
+            const scaleX = sourceCanvas.width / rect.width;
+            const scaleY = sourceCanvas.height / rect.height;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleStart(e) {
+            const pos = getCanvasCoords(e);
+            const radius = Math.max(25, sourceCanvas.width / 40);
+            activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < radius);
+        }
+
+        function handleMove(e) {
+            if (activePoint === -1) return;
+            e.preventDefault();
+            const pos = getCanvasCoords(e);
+            corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x));
+            corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
+            drawSource();
+        }
+
+        function handleEnd() {
+            if (activePoint !== -1) {
+                activePoint = -1;
+                processWarp();
+            }
+        }
+
+        sourceCanvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        sourceCanvas.addEventListener('touchstart', handleStart);
+        window.addEventListener('touchmove', handleMove);
+        window.addEventListener('touchend', handleEnd);
+
+        function rotateSource(degrees) {
+            const tempCanvas = document.createElement('canvas');
+            const tCtx = tempCanvas.getContext('2d');
             
-            // Récupérer la zone recadrée (Résolution max pour éviter les crashs navigateurs)
-            const canvas = cropper.getCroppedCanvas({ maxWidth: 2480, maxHeight: 3508 });
+            if (Math.abs(degrees) === 90) {
+                tempCanvas.width = rawImage.height;
+                tempCanvas.height = rawImage.width;
+            } else {
+                tempCanvas.width = rawImage.width;
+                tempCanvas.height = rawImage.height;
+            }
 
-            // Stocker en mémoire pour le réglage en temps réel du contraste
-            croppedCanvasData = document.createElement('canvas');
-            croppedCanvasData.width = canvas.width;
-            croppedCanvasData.height = canvas.height;
-            croppedCanvasData.getContext('2d').drawImage(canvas, 0, 0);
+            tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tCtx.rotate((degrees * Math.PI) / 180);
+            tCtx.drawImage(rawImage, -rawImage.width / 2, -rawImage.height / 2);
 
-            resultCanvas.width = canvas.width;
-            resultCanvas.height = canvas.height;
+            rawImage = new Image();
+            rawImage.onload = () => {
+                setupSourceCanvas();
+                analyzeSourceImage(); // Re-analyser après rotation
+                resetPoints();
+            };
+            rawImage.src = tempCanvas.toDataURL();
+        }
 
+        // --- 3. ALGORITHME DE PERSPECTIVE ---
+        function processWarp() {
+            const topW = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
+            const botW = Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y);
+            const leftH = Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y);
+            const rightH = Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y);
+
+            const targetW = Math.max(topW, botW);
+            const targetH = Math.max(leftH, rightH);
+
+            unbinarizedCanvas.width = targetW;
+            unbinarizedCanvas.height = targetH;
+            
+            resultCanvas.width = targetW;
+            resultCanvas.height = targetH;
+
+            const uCtx = unbinarizedCanvas.getContext('2d');
+            const imgData = sCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+            const outImgData = uCtx.createImageData(targetW, targetH);
+
+            const src = imgData.data;
+            const dst = outImgData.data;
+
+            for (let y = 0; y < targetH; y++) {
+                const v = y / targetH;
+                for (let x = 0; x < targetW; x++) {
+                    const u = x / targetW;
+
+                    const srcX = (1 - u) * (1 - v) * corners[0].x +
+                                 u * (1 - v) * corners[1].x +
+                                 u * v * corners[2].x +
+                                 (1 - u) * v * corners[3].x;
+
+                    const srcY = (1 - u) * (1 - v) * corners[0].y +
+                                 u * (1 - v) * corners[1].y +
+                                 u * v * corners[2].y +
+                                 (1 - u) * v * corners[3].y;
+
+                    const ix = Math.floor(srcX);
+                    const iy = Math.floor(srcY);
+
+                    if (ix >= 0 && ix < sourceCanvas.width && iy >= 0 && iy < sourceCanvas.height) {
+                        const srcIdx = (iy * sourceCanvas.width + ix) * 4;
+                        const dstIdx = (y * targetW + x) * 4;
+
+                        dst[dstIdx] = src[srcIdx];
+                        dst[dstIdx + 1] = src[srcIdx + 1];
+                        dst[dstIdx + 2] = src[srcIdx + 2];
+                        dst[dstIdx + 3] = 255;
+                    }
+                }
+            }
+            uCtx.putImageData(outImgData, 0, 0);
             applyBinarization();
         }
 
+        // --- 4. BINARISATION & CONTROLE QUALITE RENDU ---
         function applyBinarization() {
-            if (!croppedCanvasData) return;
+            if (!unbinarizedCanvas.width) return;
 
             const threshold = parseInt(document.getElementById('threshold').value);
-            ctx.drawImage(croppedCanvasData, 0, 0);
-            
-            const imageData = ctx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
+            const uCtx = unbinarizedCanvas.getContext('2d');
+            const imageData = uCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
             const data = imageData.data;
 
-            // Conversion Noir & Blanc pur
+            let blackPixels = 0;
+            let totalPixels = resultCanvas.width * resultCanvas.height;
+
             for (let i = 0; i < data.length; i += 4) {
                 const luminance = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
                 const color = luminance >= threshold ? 255 : 0;
+                
+                if (color === 0) blackPixels++;
                 data[i] = data[i+1] = data[i+2] = color;
             }
-            ctx.putImageData(imageData, 0, 0);
+
+            rCtx.putImageData(imageData, 0, 0);
+            updateQualityControl(blackPixels, totalPixels);
         }
 
-        // --- 4. EXPORT PDF ---
-        function exportPDF() {
-            if (!croppedCanvasData) {
-                alert("Veuillez d'abord charger et générer l'aperçu du document.");
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            // Création d'un PDF A4 (210x297 mm)
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        function updateQualityControl(blackPixels, totalPixels) {
+            const inkPercentage = ((blackPixels / totalPixels) * 100).toFixed(1);
+            qcRatio.textContent = `Encre : ${inkPercentage}%`;
             
+            qcBadge.className = 'qc-status';
+            
+            if (inkPercentage < 2) {
+                qcBadge.textContent = 'Trop clair / Risque illisible';
+                qcBadge.classList.add('qc-danger');
+            } else if (inkPercentage >= 2 && inkPercentage <= 15) {
+                qcBadge.textContent = 'Lisibilité Optimale';
+                qcBadge.classList.add('qc-optimal');
+            } else {
+                qcBadge.textContent = 'Ombres / Surconsommation encre';
+                qcBadge.classList.add('qc-warning');
+            }
+        }
+
+        // --- 5. ZOOM, EXPORT & RESET ---
+        function adjustZoom(delta) {
+            currentZoom = Math.max(20, Math.min(300, currentZoom + delta));
+            resultCanvas.style.width = currentZoom + '%';
+            zoomValue.textContent = currentZoom + '%';
+        }
+
+        function exportPDF() {
+            if (!resultCanvas.width) { alert("Veuillez charger un document."); return; }
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            
-            // Calcul du ratio pour faire tenir l'image dans le A4 sans la déformer
             const canvasRatio = resultCanvas.width / resultCanvas.height;
             const pdfRatio = pdfWidth / pdfHeight;
             
-            let finalWidth = pdfWidth;
-            let finalHeight = pdfHeight;
+            let finalWidth = pdfWidth; let finalHeight = pdfHeight;
+            if (canvasRatio > pdfRatio) { finalHeight = pdfWidth / canvasRatio; } 
+            else { finalWidth = pdfHeight * canvasRatio; }
+            const x = (pdfWidth - finalWidth) / 2; const y = (pdfHeight - finalHeight) / 2;
 
-            if (canvasRatio > pdfRatio) {
-                finalHeight = pdfWidth / canvasRatio;
-            } else {
-                finalWidth = pdfHeight * canvasRatio;
-            }
-
-            // Centrage horizontal et vertical sur la page
-            const x = (pdfWidth - finalWidth) / 2;
-            const y = (pdfHeight - finalHeight) / 2;
-
-            // Récupération de l'image en JPEG (plus léger)
-            const imgData = resultCanvas.toDataURL('image/jpeg', 1.0);
-            
-            pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+            pdf.addImage(resultCanvas.toDataURL('image/jpeg', 1.0), 'JPEG', x, y, finalWidth, finalHeight);
             pdf.save('Arret_de_travail_Optimise.pdf');
+        }
+
+        function resetApp() {
+            workspace.style.display = 'none'; dropZone.style.display = 'flex';
+            fileInput.value = ''; currentZoom = 100;
+            resultCanvas.style.width = '100%'; zoomValue.textContent = '100%';
+            rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            sourceAlertBanner.style.display = 'none';
+            qcBadge.textContent = 'En attente'; qcBadge.className = 'qc-status qc-warning'; qcRatio.textContent = 'Encre : --%';
         }
     </script>
 </body>
