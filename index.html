@@ -5,72 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Traitement Justificatifs - CHU</title>
     
-    <!-- Librairie Cropper.js (Légère et fiable) -->
+    <!-- Librairie Cropper.js (Recadrage) -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <!-- Librairie jsPDF (Génération PDF côté client) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         :root {
-            --primary-color: #0056b3;
-            --bg-color: #f4f6f9;
-            --panel-bg: #ffffff;
-            --border-color: #ced4da;
+            --primary: #0056b3;
+            --bg: #f4f6f9;
+            --panel: #ffffff;
+            --border: #ced4da;
         }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg-color);
+            background-color: var(--bg);
             margin: 0;
             padding: 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
+        .header { text-align: center; margin-bottom: 2rem; width: 100%; }
+        .header h2 { margin: 0; }
+        .badge { color: #28a745; font-weight: bold; font-size: 0.9rem; }
+        
         .layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
             width: 100%;
-            max-width: 1300px;
+            max-width: 1400px;
         }
         .panel {
-            background: var(--panel-bg);
+            background: var(--panel);
             padding: 1.5rem;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
         }
+        
         /* Zone de Drop */
         #drop-zone {
-            border: 2px dashed var(--primary-color);
+            border: 2px dashed var(--primary);
             border-radius: 6px;
-            padding: 2rem;
-            text-align: center;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             background-color: #f8f9fa;
-            margin-bottom: 1rem;
+            transition: background-color 0.2s;
         }
-        /* Conteneurs dynamiques */
-        #crop-container, #result-container {
-            display: none;
-            margin-top: 1rem;
-        }
+        #drop-zone.hover { background-color: #e2e6ea; border-color: #004085; }
+        
+        /* Conteneurs de travail */
+        #workspace { display: none; flex-grow: 1; }
         .img-container {
-            max-height: 500px;
-            margin-bottom: 1rem;
+            width: 100%;
+            height: 60vh;
             background-color: #e9ecef;
+            margin-bottom: 1rem;
             display: flex;
+            align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
         img { max-width: 100%; }
         
-        /* Boutons et Inputs */
-        .btn-group {
+        /* Rendu Canvas (Correction de l'écrasement) */
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Maintient les proportions */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: white;
+        }
+
+        /* Contrôles */
+        .controls-row {
             display: flex;
             gap: 10px;
             margin-bottom: 1rem;
         }
         button {
-            background-color: var(--primary-color);
+            background-color: var(--primary);
             color: white;
             border: none;
             padding: 10px 15px;
@@ -79,166 +103,196 @@
             cursor: pointer;
             flex: 1;
         }
+        button:hover { opacity: 0.9; }
         button.secondary { background-color: #6c757d; }
+        button.success { background-color: #28a745; margin-top: auto; padding: 15px;}
+        
         label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
         input[type="range"] { width: 100%; margin-bottom: 1rem; }
-        
-        #final-canvas {
-            max-width: 100%;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
     </style>
 </head>
 <body>
 
-    <div style="text-align: center; margin-bottom: 2rem; width: 100%;">
-        <h2 style="margin: 0;">Outil de traitement des justificatifs</h2>
-        <p style="color: #28a745; font-weight: bold; margin-top: 5px;">■ Traitement 100% Local (Client-Side)</p>
+    <div class="header">
+        <h2>Optimisation des justificatifs (Arrêts de travail)</h2>
+        <span class="badge">■ Traitement 100% Local - Export PDF A4</span>
     </div>
 
     <div class="layout">
-        <!-- Colonne Gauche : Espace de Travail (Recadrage) -->
+        <!-- PANNEAU GAUCHE : Import et Recadrage -->
         <div class="panel">
-            <h3 style="margin-top: 0;">1. Préparation du document</h3>
+            <h3 style="margin-top: 0;">1. Import & Recadrage</h3>
             
-            <div id="drop-zone" onclick="document.getElementById('file-input').click()">
-                <p style="margin:0;">Cliquez ou glissez la photo du document ici</p>
+            <!-- Zone de Drop Active -->
+            <div id="drop-zone">
+                <svg width="48" height="48" fill="none" stroke="#0056b3" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 10px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <p style="margin:0; font-weight: 600;">Glissez la photo ici</p>
+                <p style="margin:5px 0 0 0; font-size: 0.9rem; color: #6c757d;">ou cliquez pour parcourir</p>
                 <input type="file" id="file-input" accept="image/*" style="display: none;">
             </div>
 
-            <div id="crop-container">
-                <div class="btn-group">
+            <!-- Espace de recadrage (masqué par défaut) -->
+            <div id="workspace">
+                <div class="controls-row">
                     <button type="button" class="secondary" onclick="cropper.rotate(-90)">↺ Pivoter Gauche</button>
                     <button type="button" class="secondary" onclick="cropper.rotate(90)">Pivoter Droite ↻</button>
                 </div>
                 <div class="img-container">
-                    <img id="image-workspace" src="">
+                    <img id="image-source" src="">
                 </div>
-                <button type="button" onclick="validateCrop()">Valider le recadrage &gt;&gt;</button>
+                <button type="button" onclick="processImage()" style="width: 100%;">Générer l'aperçu >></button>
             </div>
         </div>
 
-        <!-- Colonne Droite : Rendu (Effet Scan) -->
+        <!-- PANNEAU DROIT : Réglages et Export PDF -->
         <div class="panel">
-            <h3 style="margin-top: 0;">2. Optimisation & Impression</h3>
+            <h3 style="margin-top: 0;">2. Réglage & Impression</h3>
             
-            <div id="result-container">
-                <label for="threshold">Contraste (Seuil Noir & Blanc)</label>
-                <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyScanEffect()">
-                
-                <div class="img-container" style="background: transparent;">
-                    <canvas id="final-canvas"></canvas>
-                </div>
-                
-                <button type="button" style="background-color: #28a745;" onclick="downloadResult()">↓ Télécharger le document optimisé</button>
+            <label for="threshold">Contraste (Suppression des ombres)</label>
+            <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyBinarization()">
+            
+            <div class="img-container" style="background: #e9ecef;">
+                <canvas id="result-canvas"></canvas>
             </div>
+            
+            <button type="button" class="success" onclick="exportPDF()">↓ Télécharger en PDF (Format A4)</button>
         </div>
     </div>
 
     <script>
         let cropper;
-        let croppedCanvasData; // Stocke l'image recadrée brute
-        const imageWorkspace = document.getElementById('image-workspace');
-        const finalCanvas = document.getElementById('final-canvas');
-        const ctx = finalCanvas.getContext('2d', { willReadFrequently: true });
+        let croppedCanvasData;
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const workspace = document.getElementById('workspace');
+        const imageSource = document.getElementById('image-source');
+        const resultCanvas = document.getElementById('result-canvas');
+        const ctx = resultCanvas.getContext('2d', { willReadFrequently: true });
 
-        // --- 1. Gestion de l'import ---
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            if (e.target.files && e.target.files.length > 0) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    initCropper(event.target.result);
-                };
-                reader.readAsDataURL(e.target.files[0]);
+        // --- 1. GESTION DU DRAG & DROP ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('hover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('hover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('hover');
+            if (e.dataTransfer.files.length > 0) {
+                loadFile(e.dataTransfer.files[0]);
             }
         });
 
-        // --- 2. Initialisation de l'outil de recadrage ---
-        function initCropper(imageSrc) {
-            document.getElementById('drop-zone').style.display = 'none';
-            document.getElementById('crop-container').style.display = 'block';
-            document.getElementById('result-container').style.display = 'none';
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) loadFile(e.target.files[0]);
+        });
 
-            imageWorkspace.src = imageSrc;
+        function loadFile(file) {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (e) => initCropper(e.target.result);
+            reader.readAsDataURL(file);
+        }
+
+        // --- 2. INITIALISATION DU RECADRAGE ---
+        function initCropper(imageSrc) {
+            dropZone.style.display = 'none';
+            workspace.style.display = 'flex';
+            imageSource.src = imageSrc;
             
-            if (cropper) { cropper.destroy(); }
+            if (cropper) cropper.destroy();
             
-            cropper = new Cropper(imageWorkspace, {
+            cropper = new Cropper(imageSource, {
                 viewMode: 1,
                 dragMode: 'move',
-                autoCropArea: 0.9,
-                restore: false,
+                autoCropArea: 0.95,
                 guides: true,
                 center: true,
-                highlight: false,
-                cropBoxMovable: true,
-                cropBoxResizable: true,
-                toggleDragModeOnDblclick: false,
+                background: false
             });
         }
 
-        // --- 3. Validation du recadrage ---
-        function validateCrop() {
+        // --- 3. TRAITEMENT ET BINARISATION ---
+        function processImage() {
             if (!cropper) return;
             
-            // Récupérer la zone découpée sous forme de canvas
-            const canvas = cropper.getCroppedCanvas({
-                maxWidth: 2480, // Limite à une résolution A4 300dpi max pour la performance
-                maxHeight: 3508
-            });
+            // Récupérer la zone recadrée (Résolution max pour éviter les crashs navigateurs)
+            const canvas = cropper.getCroppedCanvas({ maxWidth: 2480, maxHeight: 3508 });
 
-            // Stocker les données de l'image recadrée pour le filtre N&B
+            // Stocker en mémoire pour le réglage en temps réel du contraste
             croppedCanvasData = document.createElement('canvas');
             croppedCanvasData.width = canvas.width;
             croppedCanvasData.height = canvas.height;
             croppedCanvasData.getContext('2d').drawImage(canvas, 0, 0);
 
-            // Préparer le canvas d'affichage final
-            finalCanvas.width = canvas.width;
-            finalCanvas.height = canvas.height;
+            resultCanvas.width = canvas.width;
+            resultCanvas.height = canvas.height;
 
-            document.getElementById('result-container').style.display = 'block';
-            applyScanEffect();
+            applyBinarization();
         }
 
-        // --- 4. Application de l'effet Scan (Binarisation) ---
-        function applyScanEffect() {
+        function applyBinarization() {
             if (!croppedCanvasData) return;
 
             const threshold = parseInt(document.getElementById('threshold').value);
-            
-            // Copier l'image recadrée originale sur le canvas final
             ctx.drawImage(croppedCanvasData, 0, 0);
             
-            // Extraire et traiter les pixels
-            const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+            const imageData = ctx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
             const data = imageData.data;
 
+            // Conversion Noir & Blanc pur
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                
-                // Calcul de luminance standard
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                
-                // Application du seuil
+                const luminance = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
                 const color = luminance >= threshold ? 255 : 0;
-                
-                data[i] = color;     // R
-                data[i + 1] = color; // G
-                data[i + 2] = color; // B
+                data[i] = data[i+1] = data[i+2] = color;
             }
-            
             ctx.putImageData(imageData, 0, 0);
         }
 
-        // --- 5. Exportation ---
-        function downloadResult() {
-            const link = document.createElement('a');
-            link.download = 'AT_scanne.png';
-            link.href = finalCanvas.toDataURL('image/png', 1.0);
-            link.click();
+        // --- 4. EXPORT PDF ---
+        function exportPDF() {
+            if (!croppedCanvasData) {
+                alert("Veuillez d'abord charger et générer l'aperçu du document.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            // Création d'un PDF A4 (210x297 mm)
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            // Calcul du ratio pour faire tenir l'image dans le A4 sans la déformer
+            const canvasRatio = resultCanvas.width / resultCanvas.height;
+            const pdfRatio = pdfWidth / pdfHeight;
+            
+            let finalWidth = pdfWidth;
+            let finalHeight = pdfHeight;
+
+            if (canvasRatio > pdfRatio) {
+                finalHeight = pdfWidth / canvasRatio;
+            } else {
+                finalWidth = pdfHeight * canvasRatio;
+            }
+
+            // Centrage horizontal et vertical sur la page
+            const x = (pdfWidth - finalWidth) / 2;
+            const y = (pdfHeight - finalHeight) / 2;
+
+            // Récupération de l'image en JPEG (plus léger)
+            const imgData = resultCanvas.toDataURL('image/jpeg', 1.0);
+            
+            pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+            pdf.save('Arret_de_travail_Optimise.pdf');
         }
     </script>
 </body>
