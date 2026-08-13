@@ -49,14 +49,14 @@
             border: 1px solid #c8e6c9;
         }
 
-        /* Layout Principal à 3 Colonnes : [Panneau 1] -> [Bouton Étape 2] -> [Panneau 2 & 3 & 4] */
+        /* Layout Principal à 3 Colonnes */
         .main-layout {
             display: grid;
-            grid-template-columns: 1fr 90px 1fr;
+            grid-template-columns: 1fr 110px 1fr;
             gap: 1.5rem;
             width: 100%;
-            max-width: 1450px;
-            align-items: center;
+            max-width: 1500px;
+            align-items: flex-start;
             flex-grow: 1;
         }
         
@@ -69,7 +69,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            min-height: 650px;
+            min-height: 680px;
         }
 
         .step-header {
@@ -100,6 +100,41 @@
             margin: 0;
         }
 
+        /* Inputs Métadonnées */
+        .meta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .input-field label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+        }
+        .input-field input, .input-field select {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 0.88rem;
+            outline: none;
+            width: 100%;
+        }
+        .input-field input:focus, .input-field select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0,86,179,0.15);
+        }
+
         /* Zone Drop & Work (Panneau 1) */
         #drop-zone {
             border: 2px dashed var(--primary);
@@ -124,7 +159,7 @@
         .crop-wrapper {
             position: relative;
             width: 100%;
-            height: 480px;
+            height: 420px;
             background-color: #e9ecef;
             margin-bottom: 1rem;
             overflow: hidden;
@@ -150,6 +185,8 @@
             justify-content: center;
             gap: 12px;
             text-align: center;
+            margin-top: auto;
+            margin-bottom: auto;
         }
 
         .btn-transfer {
@@ -175,7 +212,7 @@
         .btn-transfer svg { width: 32px; height: 32px; fill: white; }
 
         .transfer-label {
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 700;
             color: var(--primary);
             text-transform: uppercase;
@@ -183,16 +220,16 @@
             line-height: 1.2;
         }
 
-        /* Aperçu & Zoom (Panneau 2 & 3) */
+        /* Aperçu & Zoom */
         .preview-wrapper {
             width: 100%; 
-            height: 380px; 
+            height: 320px; 
             background: #e9ecef;
             overflow: auto;
             border-radius: 6px; 
             border: 1px solid var(--border);
             position: relative;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
         #result-canvas {
             display: block;
@@ -201,6 +238,62 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             background-color: white;
             transition: width 0.1s ease;
+        }
+
+        /* Conteneur Multi-Pages (Queue de fusion) */
+        .page-queue-container {
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 1rem;
+        }
+        .queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .queue-thumbnails {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            min-height: 50px;
+            align-items: center;
+        }
+        .thumb-item {
+            position: relative;
+            flex-shrink: 0;
+            width: 40px;
+            height: 52px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            background: white;
+        }
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .thumb-item .thumb-del {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(220,53,69,0.9);
+            color: white;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
         }
 
         /* Indicateurs Qualité */
@@ -212,15 +305,15 @@
             padding: 8px 12px; 
             border-radius: 6px; 
             border: 1px solid var(--border);
-            margin-bottom: 1rem; 
-            font-size: 0.85rem; 
+            margin-bottom: 0.75rem; 
+            font-size: 0.82rem; 
             font-weight: 600;
         }
         .qc-status { 
-            padding: 4px 10px; 
+            padding: 3px 8px; 
             border-radius: 12px; 
             color: white; 
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
         }
         .qc-optimal { background-color: #28a745; }
@@ -241,25 +334,25 @@
         #source-alert-banner.alert-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
         #source-alert-banner.alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
 
-        /* Boutons et UI Controls */
+        /* Controls */
         .controls-row { display: flex; gap: 8px; margin-top: auto; }
         .toolbar-zoom { 
             display: flex; gap: 6px; align-items: center; 
-            justify-content: center; margin-bottom: 8px; 
+            justify-content: center; margin-bottom: 6px; 
         }
         
         button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             background-color: var(--primary); 
             color: white; 
             border: none;
-            padding: 10px 14px; 
+            padding: 8px 12px; 
             border-radius: 6px; 
             font-weight: 600; 
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer; 
             flex: 1;
             transition: background 0.2s;
@@ -269,23 +362,29 @@
         button.secondary:hover { background-color: #5a6268; }
         button.success { 
             background-color: var(--success); 
-            font-size: 1rem;
-            padding: 12px 16px;
+            font-size: 0.95rem;
+            padding: 10px 14px;
         }
         button.success:hover { background-color: var(--success-hover); }
         button.outline { background-color: transparent; border: 1.5px solid #6c757d; color: #6c757d; }
         button.outline:hover { background-color: #6c757d; color: white; }
-        button.icon-btn { flex: 0; padding: 4px 10px; font-size: 1rem; }
+        button.icon-btn-compact { 
+            flex: 0; 
+            padding: 6px 10px; 
+            min-width: 38px;
+            height: 36px;
+        }
+        button.icon-btn-compact svg { width: 20px; height: 20px; fill: white; }
         
-        button svg { width: 18px; height: 18px; fill: currentColor; }
+        button svg { width: 16px; height: 16px; fill: currentColor; }
         
-        label { font-weight: 600; display: block; margin-bottom: 0.4rem; font-size: 0.88rem; }
-        input[type="range"] { width: 100%; margin-bottom: 0.8rem; cursor: pointer; }
+        label { font-weight: 600; display: block; margin-bottom: 0.3rem; font-size: 0.85rem; }
+        input[type="range"] { width: 100%; margin-bottom: 0.6rem; cursor: pointer; }
         
         .footer { 
-            margin-top: 2rem; 
+            margin-top: 1.5rem; 
             color: var(--text-muted); 
-            font-size: 0.88rem; 
+            font-size: 0.85rem; 
             font-weight: 600;
             letter-spacing: 0.3px;
         }
@@ -305,28 +404,45 @@
 
     <div class="main-layout">
         
-        <!-- ÉTAPE 1 : IMPORTATION ET RECADRAGE PERSPECTIVE -->
+        <!-- ÉTAPE 1 : IMPORTATION, MÉTADONNÉES ET RECADRAGE -->
         <div class="panel">
             <div class="step-header">
                 <div class="step-number">1</div>
-                <h3 class="step-title">Recadrage & Redressement</h3>
+                <h3 class="step-title">Recadrage & Informations Document</h3>
+            </div>
+
+            <!-- Champs Métadonnées -->
+            <div class="meta-group">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="input-field">
+                        <label for="doc-type">Type de document</label>
+                        <select id="doc-type">
+                            <option value="Arret_de_Travail">Arrêt de Travail</option>
+                            <option value="Certificat_Medical">Certificat Médical</option>
+                            <option value="Justificatif_RH">Justificatif RH</option>
+                            <option value="Document">Autre Document</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label for="agent-name">Nom Prénom Agent</label>
+                        <input type="text" id="agent-name" placeholder="ex: DUPONT Jean">
+                    </div>
+                </div>
             </div>
 
             <!-- Zone de Drop -->
             <div id="drop-zone">
-                <svg viewBox="0 0 24 24" style="width: 48px; height: 48px; fill: var(--primary); margin-bottom: 12px;">
+                <svg viewBox="0 0 24 24" style="width: 44px; height: 44px; fill: var(--primary); margin-bottom: 10px;">
                     <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
                 </svg>
-                <p style="margin:0; font-weight: 700; font-size: 1rem; color: #2c3e50;">Glissez la photo du document ici</p>
-                <p style="margin:6px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">ou cliquez pour parcourir les fichiers</p>
+                <p style="margin:0; font-weight: 700; font-size: 0.95rem; color: #2c3e50;">Glissez la photo du document ici</p>
+                <p style="margin:4px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">ou cliquez pour parcourir les fichiers</p>
                 <input type="file" id="file-input" accept="image/*" style="display: none;">
             </div>
 
             <div id="workspace">
-                <!-- Alerte Qualité Image Source -->
                 <div id="source-alert-banner"></div>
 
-                <!-- Indicateurs de contrôle qualité de la photo brute -->
                 <div class="qc-bar" style="flex-wrap: wrap; gap: 6px;">
                     <div>Netteté : <strong id="sqc-sharpness-val">--</strong></div>
                     <div>Luminosité : <strong id="sqc-brightness-val">--</strong></div>
@@ -338,17 +454,18 @@
                 </div>
                 
                 <div class="controls-row">
-                    <button type="button" class="secondary" onclick="rotateSource(-90)">
+                    <!-- Bouton Pivoter Gauche compact SVG -->
+                    <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(-90)" title="Pivoter à gauche">
                         <svg viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.52-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.63 3.89l1.41-1.42c-.52-.75-.9-1.6-1.02-2.47zM12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8z"/></svg>
-                        Pivoter G.
                     </button>
-                    <button type="button" class="secondary" onclick="rotateSource(90)">
+                    <!-- Bouton Pivoter Droite compact SVG -->
+                    <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(90)" title="Pivoter à droite">
                         <svg viewBox="0 0 24 24"><path d="M15.55 5.55L14.14 7c.52.75.9 1.6 1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.92zM12 4c4.42 0 8 3.58 8 8 0 1.57-.46 3.03-1.24 4.26l-1.46-1.46c.45-.83.7-1.79.7-2.8 0-3.31-2.69-6-6-6v3L8 5l4-4v3zm5.19 11.47c-.5.75-.88 1.6-1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.89l-1.37 1.42zM12 20c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 9.74C4.46 10.97 4 12.43 4 14c0 4.42 3.58 8 8 8v-3l4 4-4 4v-3z"/></svg>
-                        Pivoter D.
                     </button>
+                    <!-- Réinitialiser les coins -->
                     <button type="button" class="secondary" onclick="resetPoints()">
                         <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-                        Reset coins
+                        Réinitialiser coins
                     </button>
                 </div>
             </div>
@@ -356,7 +473,7 @@
 
         <!-- ÉTAPE 2 : ACTION BOUTON DE TRANSFERT VERS APERÇU -->
         <div class="transfer-column">
-            <button type="button" class="btn-transfer" onclick="triggerManualWarp()" title="Générer le redressement et l'aperçu">
+            <button type="button" class="btn-transfer" onclick="triggerManualWarp()" title="Générer l'aperçu">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
                 </svg>
@@ -371,7 +488,7 @@
         <div class="panel">
             <div class="step-header">
                 <div class="step-number">3</div>
-                <h3 class="step-title">Réglage Contraste & Validation</h3>
+                <h3 class="step-title">Réglage Contraste & Multi-pages</h3>
             </div>
 
             <label for="threshold">Modification du contraste (Suppression des ombres)</label>
@@ -385,20 +502,33 @@
             
             <div class="toolbar-zoom">
                 <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-right: 8px;">Zoom :</span>
-                <button type="button" class="secondary icon-btn" onclick="adjustZoom(-20)">-</button>
-                <span id="zoom-value" style="width: 45px; text-align: center; font-size: 0.88rem; font-weight: bold;">100%</span>
-                <button type="button" class="secondary icon-btn" onclick="adjustZoom(20)">+</button>
+                <button type="button" class="secondary icon-btn-compact" style="min-width: 30px; height: 28px;" onclick="adjustZoom(-20)">-</button>
+                <span id="zoom-value" style="width: 45px; text-align: center; font-size: 0.85rem; font-weight: bold;">100%</span>
+                <button type="button" class="secondary icon-btn-compact" style="min-width: 30px; height: 28px;" onclick="adjustZoom(20)">+</button>
             </div>
 
             <div class="preview-wrapper" id="preview-wrapper">
                 <canvas id="result-canvas"></canvas>
+            </div>
+
+            <!-- Queue Multi-Pages (Mettre de côté pour merger) -->
+            <div class="page-queue-container">
+                <div class="queue-header">
+                    <span>Document(s) en attente de fusion : <strong id="page-count-badge">0 page</strong></span>
+                    <button type="button" class="secondary" style="padding: 2px 8px; font-size: 0.75rem; flex: none;" onclick="addCurrentPageToQueue()">
+                        + Ajouter cette page
+                    </button>
+                </div>
+                <div class="queue-thumbnails" id="queue-thumbnails">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Ajouter" pour créer un PDF multi-pages.</span>
+                </div>
             </div>
             
             <!-- ÉTAPE 4 : TELECHARGEMENT -->
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
                 <button type="button" class="success" onclick="exportPDF()">
                     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    4. Télécharger le document en PDF (Format A4)
+                    4. Télécharger le document (PDF A4)
                 </button>
                 <button type="button" class="outline" onclick="resetApp()">
                     <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
@@ -417,8 +547,13 @@
         let rawImage = new Image();
         let corners = [];
         let activePoint = -1;
+        let activeEdge = -1;
+        let dragStartPos = null;
+        let dragStartCorners = null;
+
         let currentZoom = 100;
         let unbinarizedCanvas = document.createElement('canvas');
+        let pdfPageQueue = []; // File d'attente multi-pages
 
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
@@ -433,7 +568,6 @@
         const qcRatio = document.getElementById('qc-ratio');
         const zoomValue = document.getElementById('zoom-value');
 
-        // Diagnostics source
         const sqcSharpnessVal = document.getElementById('sqc-sharpness-val');
         const sqcBrightnessVal = document.getElementById('sqc-brightness-val');
         const sqcBadge = document.getElementById('sqc-badge');
@@ -459,7 +593,7 @@
                     workspace.style.display = 'flex';
                     setupSourceCanvas();
                     analyzeSourceImage();
-                    resetPoints(false); // Initialise les coins sans lancer la transformation automatique
+                    resetPoints(false);
                 };
                 rawImage.src = e.target.result;
             };
@@ -566,7 +700,7 @@
             }
         }
 
-        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE (SANS CRASH) ---
+        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET BORDURES (A4 HAUTE PRECISION) ---
         function setupSourceCanvas() {
             sourceCanvas.width = rawImage.width;
             sourceCanvas.height = rawImage.height;
@@ -593,6 +727,7 @@
             sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
             sCtx.drawImage(rawImage, 0, 0);
 
+            // Contour du quadrilatère
             sCtx.beginPath();
             sCtx.moveTo(corners[0].x, corners[0].y);
             for (let i = 1; i < 4; i++) {
@@ -605,6 +740,23 @@
             sCtx.lineWidth = Math.max(3, sourceCanvas.width / 300);
             sCtx.stroke();
 
+            // Dessiner les poignées de bords (segments)
+            const edgeRadius = Math.max(7, sourceCanvas.width / 120);
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (i + 1) % 4;
+                const midX = (corners[i].x + corners[nextIdx].x) / 2;
+                const midY = (corners[i].y + corners[nextIdx].y) / 2;
+
+                sCtx.beginPath();
+                sCtx.arc(midX, midY, edgeRadius, 0, Math.PI * 2);
+                sCtx.fillStyle = '#0056b3';
+                sCtx.fill();
+                sCtx.strokeStyle = '#ffffff';
+                sCtx.lineWidth = edgeRadius / 3;
+                sCtx.stroke();
+            }
+
+            // Dessiner les 4 poignées de coins
             const radius = Math.max(10, sourceCanvas.width / 80);
             corners.forEach((pt) => {
                 sCtx.beginPath();
@@ -629,23 +781,77 @@
             };
         }
 
+        function distanceToSegment(pt, p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq === 0) return Math.hypot(pt.x - p1.x, pt.y - p1.y);
+            let t = ((pt.x - p1.x) * dx + (pt.y - p1.y) * dy) / lenSq;
+            t = Math.max(0, Math.min(1, t));
+            const projX = p1.x + t * dx;
+            const projY = p1.y + t * dy;
+            return Math.hypot(pt.x - projX, pt.y - projY);
+        }
+
         function handleStart(e) {
             const pos = getCanvasCoords(e);
-            const radius = Math.max(30, sourceCanvas.width / 35);
-            activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < radius);
+            const pointRadius = Math.max(30, sourceCanvas.width / 35);
+            
+            // 1. Tester les poignées de coins d'abord
+            activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pointRadius);
+            
+            if (activePoint !== -1) {
+                activeEdge = -1;
+                return;
+            }
+
+            // 2. Tester les 4 bords (étirement de segment complet)
+            const edgeThreshold = Math.max(25, sourceCanvas.width / 40);
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (i + 1) % 4;
+                const dist = distanceToSegment(pos, corners[i], corners[nextIdx]);
+                if (dist < edgeThreshold) {
+                    activeEdge = i;
+                    dragStartPos = pos;
+                    dragStartCorners = JSON.parse(JSON.stringify(corners));
+                    return;
+                }
+            }
+
+            activePoint = -1;
+            activeEdge = -1;
         }
 
         function handleMove(e) {
-            if (activePoint === -1) return;
+            if (activePoint === -1 && activeEdge === -1) return;
             e.preventDefault();
             const pos = getCanvasCoords(e);
-            corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x));
-            corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
-            drawSource(); // Fluidité parfaite : redessine uniquement les poignées, pas de calcul lourd
+
+            if (activePoint !== -1) {
+                corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x));
+                corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
+            } else if (activeEdge !== -1) {
+                // Translater les 2 coins associés à l'arête sélectionnée
+                const idx1 = activeEdge;
+                const idx2 = (activeEdge + 1) % 4;
+                const deltaX = pos.x - dragStartPos.x;
+                const deltaY = pos.y - dragStartPos.y;
+
+                corners[idx1].x = Math.max(0, Math.min(sourceCanvas.width, dragStartCorners[idx1].x + deltaX));
+                corners[idx1].y = Math.max(0, Math.min(sourceCanvas.height, dragStartCorners[idx1].y + deltaY));
+                
+                corners[idx2].x = Math.max(0, Math.min(sourceCanvas.width, dragStartCorners[idx2].x + deltaX));
+                corners[idx2].y = Math.max(0, Math.min(sourceCanvas.height, dragStartCorners[idx2].y + deltaY));
+            }
+
+            drawSource();
         }
 
         function handleEnd() {
             activePoint = -1;
+            activeEdge = -1;
+            dragStartPos = null;
+            dragStartCorners = null;
         }
 
         sourceCanvas.addEventListener('mousedown', handleStart);
@@ -681,7 +887,7 @@
             rawImage.src = tempCanvas.toDataURL();
         }
 
-        // --- 3. DÉCLENCHEMENT MANUEL DE L'ÉTAPE 2 (REDRESSEMENT PERSPECTIVE) ---
+        // --- 3. DÉCLENCHEMENT DE L'APERÇU & REDRESSEMENT PROPRE (SANS CADRE PARASITE) ---
         function triggerManualWarp() {
             if (!rawImage.src || sourceCanvas.width === 0) {
                 alert("Veuillez d'abord charger une photo dans le panneau 1.");
@@ -702,8 +908,15 @@
             resultCanvas.width = targetW;
             resultCanvas.height = targetH;
 
+            // Extraire l'image d'origine SANS la grille/les points dessinés dessus
+            const cleanCanvas = document.createElement('canvas');
+            cleanCanvas.width = sourceCanvas.width;
+            cleanCanvas.height = sourceCanvas.height;
+            const cCtx = cleanCanvas.getContext('2d');
+            cCtx.drawImage(rawImage, 0, 0);
+
             const uCtx = unbinarizedCanvas.getContext('2d');
-            const imgData = sCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+            const imgData = cCtx.getImageData(0, 0, cleanCanvas.width, cleanCanvas.height);
             const outImgData = uCtx.createImageData(targetW, targetH);
 
             const src = imgData.data;
@@ -727,8 +940,8 @@
                     const ix = Math.floor(srcX);
                     const iy = Math.floor(srcY);
 
-                    if (ix >= 0 && ix < sourceCanvas.width && iy >= 0 && iy < sourceCanvas.height) {
-                        const srcIdx = (iy * sourceCanvas.width + ix) * 4;
+                    if (ix >= 0 && ix < cleanCanvas.width && iy >= 0 && iy < cleanCanvas.height) {
+                        const srcIdx = (iy * cleanCanvas.width + ix) * 4;
                         const dstIdx = (y * targetW + x) * 4;
 
                         dst[dstIdx] = src[srcIdx];
@@ -742,7 +955,7 @@
             applyBinarization();
         }
 
-        // --- 4. ÉTAPE 3 : BINARISATION & CONTROLE QUALITÉ RENDU ---
+        // --- 4. BINARISATION & CONTROLE QUALITÉ RENDU ---
         function applyBinarization() {
             if (!unbinarizedCanvas.width) return;
 
@@ -784,29 +997,120 @@
             }
         }
 
-        // --- 5. ÉTAPE 4 : EXPORT PDF & ZOOM & RESET ---
-        function adjustZoom(delta) {
-            currentZoom = Math.max(20, Math.min(300, currentZoom + delta));
-            resultCanvas.style.width = currentZoom + '%';
-            zoomValue.textContent = currentZoom + '%';
+        // --- 5. GESTION MULTI-PAGES & FUSION PDF ---
+        function addCurrentPageToQueue() {
+            if (!resultCanvas.width) {
+                alert("Veuillez d'abord générer un aperçu de document.");
+                return;
+            }
+
+            // Cloner le canvas de résultat actuel
+            const imgDataUrl = resultCanvas.toDataURL('image/jpeg', 0.92);
+            pdfPageQueue.push({
+                dataUrl: imgDataUrl,
+                width: resultCanvas.width,
+                height: resultCanvas.height
+            });
+
+            renderQueueThumbnails();
+        }
+
+        function removePageFromQueue(index) {
+            pdfPageQueue.splice(index, 1);
+            renderQueueThumbnails();
+        }
+
+        function renderQueueThumbnails() {
+            const container = document.getElementById('queue-thumbnails');
+            const badge = document.getElementById('page-count-badge');
+            
+            badge.textContent = `${pdfPageQueue.length} page${pdfPageQueue.length > 1 ? 's' : ''}`;
+            container.innerHTML = '';
+
+            if (pdfPageQueue.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Ajouter" pour créer un PDF multi-pages.</span>`;
+                return;
+            }
+
+            pdfPageQueue.forEach((page, idx) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'thumb-item';
+                thumb.innerHTML = `
+                    <img src="${page.dataUrl}">
+                    <div class="thumb-del" onclick="removePageFromQueue(${idx})" title="Supprimer la page">×</div>
+                `;
+                container.appendChild(thumb);
+            });
+        }
+
+        // --- 6. EXPORT PDF DYNAMIQUE AVEC NOMMAGE STRUCTURÉ ---
+        function formatFilename() {
+            const docType = document.getElementById('doc-type').value;
+            let agentName = document.getElementById('agent-name').value.trim();
+            
+            // Nettoyage des caractères spéciaux pour le nom de fichier
+            agentName = agentName ? agentName.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Anonyme';
+            
+            // Date du jour JJ-MM-AAAA
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const dateStr = `${day}-${month}-${year}`;
+
+            return `${docType}_${agentName}_${dateStr}.pdf`;
         }
 
         function exportPDF() {
-            if (!resultCanvas.width) { alert("Veuillez d'abord générer l'aperçu."); return; }
+            let pagesToExport = [];
+
+            if (pdfPageQueue.length > 0) {
+                pagesToExport = pdfPageQueue;
+            } else if (resultCanvas.width > 0) {
+                pagesToExport.push({
+                    dataUrl: resultCanvas.toDataURL('image/jpeg', 0.95),
+                    width: resultCanvas.width,
+                    height: resultCanvas.height
+                });
+            } else {
+                alert("Veuillez d'abord générer un aperçu du document.");
+                return;
+            }
+
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasRatio = resultCanvas.width / resultCanvas.height;
-            const pdfRatio = pdfWidth / pdfHeight;
-            
-            let finalWidth = pdfWidth; let finalHeight = pdfHeight;
-            if (canvasRatio > pdfRatio) { finalHeight = pdfWidth / canvasRatio; } 
-            else { finalWidth = pdfHeight * canvasRatio; }
-            const x = (pdfWidth - finalWidth) / 2; const y = (pdfHeight - finalHeight) / 2;
 
-            pdf.addImage(resultCanvas.toDataURL('image/jpeg', 1.0), 'JPEG', x, y, finalWidth, finalHeight);
-            pdf.save('Arret_de_travail_Optimise.pdf');
+            pagesToExport.forEach((page, index) => {
+                if (index > 0) pdf.addPage();
+
+                const canvasRatio = page.width / page.height;
+                const pdfRatio = pdfWidth / pdfHeight;
+                
+                let finalWidth = pdfWidth; 
+                let finalHeight = pdfHeight;
+
+                if (canvasRatio > pdfRatio) { 
+                    finalHeight = pdfWidth / canvasRatio; 
+                } else { 
+                    finalWidth = pdfHeight * canvasRatio; 
+                }
+
+                const x = (pdfWidth - finalWidth) / 2; 
+                const y = (pdfHeight - finalHeight) / 2;
+
+                pdf.addImage(page.dataUrl, 'JPEG', x, y, finalWidth, finalHeight);
+            });
+
+            const fileName = formatFilename();
+            pdf.save(fileName);
+        }
+
+        function adjustZoom(delta) {
+            currentZoom = Math.max(20, Math.min(300, currentZoom + delta));
+            resultCanvas.style.width = currentZoom + '%';
+            zoomValue.textContent = currentZoom + '%';
         }
 
         function resetApp() {
@@ -815,6 +1119,8 @@
             resultCanvas.style.width = '100%'; zoomValue.textContent = '100%';
             rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
             sourceAlertBanner.style.display = 'none';
+            pdfPageQueue = [];
+            renderQueueThumbnails();
             qcBadge.textContent = 'En attente'; qcBadge.className = 'qc-status qc-warning'; qcRatio.textContent = 'Encre : --%';
         }
     </script>
