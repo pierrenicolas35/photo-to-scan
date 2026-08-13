@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traitement des justificatifs</title>
+    <title>Optimisation des justificatifs</title>
     
+    <!-- Favicon SVG natif (Intégré en Data-URI pour les favoris) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230056b3'><path d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'/><circle cx='17' cy='17' r='4' fill='%2328a745'/><path d='M15.8 17l-1.2-1.2-.8.8 2 2 3.2-3.2-.8-.8z' fill='white'/></svg>">
+
     <!-- jsPDF pour l'export A4 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -527,17 +530,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="input-field">
                         <label for="doc-type">Type de document</label>
-                        <input type="text" id="doc-type" list="doc-type-suggestions" placeholder="ex: Arret_de_Travail">
-                        <datalist id="doc-type-suggestions">
-                            <option value="Arret_de_Travail"></option>
-                            <option value="Certificat_Medical"></option>
-                            <option value="Justificatif_RH"></option>
-                            <option value="Facture_Sante"></option>
-                        </datalist>
+                        <input type="text" id="doc-type" placeholder="Nature du document...">
                     </div>
                     <div class="input-field">
                         <label for="agent-name">Nom Prénom Agent</label>
-                        <input type="text" id="agent-name" placeholder="ex: DUPONT Jean">
+                        <input type="text" id="agent-name" placeholder="Nom et prénom...">
                     </div>
                 </div>
             </div>
@@ -586,8 +583,9 @@
         const sqcBadge = document.getElementById('sqc-badge');
         const sourceAlertBanner = document.getElementById('source-alert-banner');
 
-        // Initialisation de la valeur par défaut pour la saisie libre
-        document.getElementById('doc-type').value = "Arret_de_Travail";
+        // Initialisation à vide des métadonnées
+        document.getElementById('doc-type').value = "";
+        document.getElementById('agent-name').value = "";
 
         // --- 1. DRAG & DROP & IMPORT ---
         dropZone.addEventListener('click', () => fileInput.click());
@@ -811,16 +809,15 @@
             return Math.hypot(pt.x - projX, pt.y - projY);
         }
 
-        // Gestion dynamique des curseurs au survol
         sourceCanvas.addEventListener('mousemove', (e) => {
-            if (activePoint !== -1 || activeEdge !== -1) return; // Si un glissement est déjà en cours
+            if (activePoint !== -1 || activeEdge !== -1) return;
             
             const pos = getCanvasCoords(e);
             const pointRadius = Math.max(30, sourceCanvas.width / 35);
             const hoverCorner = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pointRadius);
 
             if (hoverCorner !== -1) {
-                sourceCanvas.style.cursor = 'crosshair'; // Croix au survol d'un coin
+                sourceCanvas.style.cursor = 'crosshair';
                 return;
             }
 
@@ -828,11 +825,10 @@
             for (let i = 0; i < 4; i++) {
                 const nextIdx = (i + 1) % 4;
                 if (distanceToSegment(pos, corners[i], corners[nextIdx]) < edgeThreshold) {
-                    // Adapter le curseur d'étirement de bord selon l'orientation de l'arête (0: haut, 1: droit, 2: bas, 3: gauche)
                     if (i === 0 || i === 2) {
-                        sourceCanvas.style.cursor = 'ns-resize'; // Flèches haut-bas pour les arêtes horizontales
+                        sourceCanvas.style.cursor = 'ns-resize';
                     } else {
-                        sourceCanvas.style.cursor = 'ew-resize'; // Flèches gauche-droite pour les arêtes verticales
+                        sourceCanvas.style.cursor = 'ew-resize';
                     }
                     return;
                 }
@@ -1213,7 +1209,7 @@
             renderQueueThumbnails();
             
             // Remise à zéro des champs métadonnées
-            document.getElementById('doc-type').value = "Arret_de_Travail";
+            document.getElementById('doc-type').value = "";
             document.getElementById('agent-name').value = "";
             currentZoom = 100;
             resultCanvas.style.width = '100%';
