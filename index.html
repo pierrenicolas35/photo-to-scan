@@ -11,67 +11,128 @@
     <style>
         :root {
             --primary: #0056b3;
+            --primary-hover: #004085;
+            --success: #28a745;
+            --success-hover: #218838;
             --bg: #f4f6f9;
             --panel: #ffffff;
             --border: #ced4da;
+            --text-dark: #212529;
+            --text-muted: #6c757d;
         }
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
+            color: var(--text-dark);
             margin: 0;
-            padding: 2rem;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
         }
-        .header { text-align: center; margin-bottom: 2rem; width: 100%; }
-        .header h2 { margin: 0; }
-        .badge-secu { color: #28a745; font-weight: bold; font-size: 0.9rem; }
         
-        .layout {
+        /* En-tête */
+        .header { text-align: center; margin-bottom: 1.5rem; width: 100%; }
+        .header h2 { margin: 0 0 0.5rem 0; font-size: 1.6rem; color: #1a252f; }
+        .badge-secu { 
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--success); 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            background: #e8f5e9;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #c8e6c9;
+        }
+
+        /* Layout Principal à 3 Colonnes : [Panneau 1] -> [Bouton Étape 2] -> [Panneau 2 & 3 & 4] */
+        .main-layout {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
+            grid-template-columns: 1fr 90px 1fr;
+            gap: 1.5rem;
             width: 100%;
-            max-width: 1400px;
+            max-width: 1450px;
+            align-items: center;
             flex-grow: 1;
         }
+        
         .panel {
             background: var(--panel);
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 1.25rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             border: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            height: 100%;
+            min-height: 650px;
         }
-        
-        /* Zone Drop & Work */
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f0f2f5;
+        }
+        .step-number {
+            background-color: var(--primary);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        /* Zone Drop & Work (Panneau 1) */
         #drop-zone {
             border: 2px dashed var(--primary);
-            border-radius: 6px;
-            height: 300px;
+            border-radius: 8px;
+            height: 350px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             background-color: #f8f9fa;
+            transition: all 0.2s ease;
+            margin: auto 0;
         }
+        #drop-zone:hover {
+            background-color: #eef4fc;
+            border-color: var(--primary-hover);
+        }
+        
         #workspace { display: none; flex-direction: column; height: 100%; }
         
         .crop-wrapper {
             position: relative;
             width: 100%;
-            height: 60vh;
+            height: 480px;
             background-color: #e9ecef;
             margin-bottom: 1rem;
             overflow: hidden;
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             justify-content: center;
             align-items: center;
+            border: 1px solid var(--border);
         }
         
         #source-canvas {
@@ -81,144 +142,251 @@
             max-height: 100%;
         }
 
-        /* Aperçu & Zoom */
+        /* Colonne Centrale : Bouton Étape 2 */
+        .transfer-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .btn-transfer {
+            background: linear-gradient(135deg, var(--primary), #003d82);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 86, 179, 0.35);
+            transition: all 0.25s ease;
+        }
+        .btn-transfer:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(0, 86, 179, 0.5);
+            background: linear-gradient(135deg, #0062cc, #002b5c);
+        }
+        .btn-transfer:active { transform: scale(0.96); }
+        .btn-transfer svg { width: 32px; height: 32px; fill: white; }
+
+        .transfer-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        /* Aperçu & Zoom (Panneau 2 & 3) */
         .preview-wrapper {
-            width: 100%; height: 50vh; background: #e9ecef;
+            width: 100%; 
+            height: 380px; 
+            background: #e9ecef;
             overflow: auto;
-            border-radius: 4px; border: 1px solid var(--border);
+            border-radius: 6px; 
+            border: 1px solid var(--border);
             position: relative;
+            margin-bottom: 1rem;
         }
         #result-canvas {
             display: block;
             margin: 0 auto;
             width: 100%;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             background-color: white;
             transition: width 0.1s ease;
         }
 
         /* Indicateurs Qualité */
         .qc-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid var(--border);
-            margin-bottom: 1rem; font-size: 0.85rem; font-weight: 600;
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: #f8f9fa; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            border: 1px solid var(--border);
+            margin-bottom: 1rem; 
+            font-size: 0.85rem; 
+            font-weight: 600;
         }
-        .qc-status { padding: 4px 8px; border-radius: 4px; color: white; text-align: center; }
+        .qc-status { 
+            padding: 4px 10px; 
+            border-radius: 12px; 
+            color: white; 
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
         .qc-optimal { background-color: #28a745; }
         .qc-warning { background-color: #fd7e14; }
         .qc-danger { background-color: #dc3545; }
 
-        /* Banner d'alerte globale image source */
+        /* Banner d'alerte image source */
         #source-alert-banner {
             display: none;
-            padding: 10px 12px;
+            padding: 8px 12px;
             border-radius: 6px;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.82rem;
             font-weight: 600;
-            line-height: 1.3;
+            line-height: 1.35;
         }
-        #source-alert-banner.alert-danger {
-            background-color: #f8d7da;
-            color: #842029;
-            border: 1px solid #f5c2c7;
-        }
-        #source-alert-banner.alert-warning {
-            background-color: #fff3cd;
-            color: #664d03;
-            border: 1px solid #ffecb5;
-        }
-        #source-alert-banner.alert-success {
-            background-color: #d1e7dd;
-            color: #0f5132;
-            border: 1px solid #badbcc;
-        }
+        #source-alert-banner.alert-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        #source-alert-banner.alert-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+        #source-alert-banner.alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
 
-        /* Contrôles */
-        .controls-row { display: flex; gap: 10px; margin-top: auto; }
+        /* Boutons et UI Controls */
+        .controls-row { display: flex; gap: 8px; margin-top: auto; }
         .toolbar-zoom { 
-            display: flex; gap: 5px; align-items: center; 
-            justify-content: center; margin-bottom: 10px; 
+            display: flex; gap: 6px; align-items: center; 
+            justify-content: center; margin-bottom: 8px; 
         }
         
         button {
-            background-color: var(--primary); color: white; border: none;
-            padding: 12px 15px; border-radius: 4px; font-weight: 600; cursor: pointer; flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: var(--primary); 
+            color: white; 
+            border: none;
+            padding: 10px 14px; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            font-size: 0.9rem;
+            cursor: pointer; 
+            flex: 1;
+            transition: background 0.2s;
         }
-        button:hover { opacity: 0.9; }
+        button:hover { background-color: var(--primary-hover); }
         button.secondary { background-color: #6c757d; }
-        button.success { background-color: #28a745; margin-bottom: 10px;}
-        button.outline { background-color: transparent; border: 2px solid #6c757d; color: #6c757d; }
-        button.icon-btn { flex: 0; padding: 5px 12px; font-size: 1.2rem; }
+        button.secondary:hover { background-color: #5a6268; }
+        button.success { 
+            background-color: var(--success); 
+            font-size: 1rem;
+            padding: 12px 16px;
+        }
+        button.success:hover { background-color: var(--success-hover); }
+        button.outline { background-color: transparent; border: 1.5px solid #6c757d; color: #6c757d; }
+        button.outline:hover { background-color: #6c757d; color: white; }
+        button.icon-btn { flex: 0; padding: 4px 10px; font-size: 1rem; }
         
-        label { font-weight: 600; display: block; margin-bottom: 0.5rem; font-size: 0.9rem;}
-        input[type="range"] { width: 100%; margin-bottom: 1rem; }
+        button svg { width: 18px; height: 18px; fill: currentColor; }
         
-        .footer { margin-top: 2rem; color: #6c757d; font-size: 0.9rem; font-weight: 500; }
+        label { font-weight: 600; display: block; margin-bottom: 0.4rem; font-size: 0.88rem; }
+        input[type="range"] { width: 100%; margin-bottom: 0.8rem; cursor: pointer; }
+        
+        .footer { 
+            margin-top: 2rem; 
+            color: var(--text-muted); 
+            font-size: 0.88rem; 
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h2>Optimisation des justificatifs (Arrêts de travail)</h2>
-        <span class="badge-secu">■ Traitement 100% Local - Diagnostic Qualité & Redressement</span>
+        <span class="badge-secu">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+            </svg>
+            Traitement 100% Local (Client-Side) - Confidentialité Garantie
+        </span>
     </div>
 
-    <div class="layout">
-        <!-- PANNEAU GAUCHE : Import & Recadrage Persp. -->
+    <div class="main-layout">
+        
+        <!-- ÉTAPE 1 : IMPORTATION ET RECADRAGE PERSPECTIVE -->
         <div class="panel">
-            <h3 style="margin-top: 0;">1. Import & Diagnostic Source</h3>
-            
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Recadrage & Redressement</h3>
+            </div>
+
+            <!-- Zone de Drop -->
             <div id="drop-zone">
-                <p style="margin:0; font-weight: 600;">Glissez la photo ici</p>
+                <svg viewBox="0 0 24 24" style="width: 48px; height: 48px; fill: var(--primary); margin-bottom: 12px;">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                </svg>
+                <p style="margin:0; font-weight: 700; font-size: 1rem; color: #2c3e50;">Glissez la photo du document ici</p>
+                <p style="margin:6px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">ou cliquez pour parcourir les fichiers</p>
                 <input type="file" id="file-input" accept="image/*" style="display: none;">
             </div>
 
             <div id="workspace">
-                <!-- Alerte globale sur l'image source -->
+                <!-- Alerte Qualité Image Source -->
                 <div id="source-alert-banner"></div>
 
                 <!-- Indicateurs de contrôle qualité de la photo brute -->
                 <div class="qc-bar" style="flex-wrap: wrap; gap: 6px;">
-                    <div>
-                        <span>Netteté : </span>
-                        <strong id="sqc-sharpness-val">--</strong>
-                    </div>
-                    <div>
-                        <span>Luminosité : </span>
-                        <strong id="sqc-brightness-val">--</strong>
-                    </div>
+                    <div>Netteté : <strong id="sqc-sharpness-val">--</strong></div>
+                    <div>Luminosité : <strong id="sqc-brightness-val">--</strong></div>
                     <span id="sqc-badge" class="qc-status qc-optimal" style="margin-left: auto;">Diagnostic</span>
                 </div>
 
-                <div class="crop-wrapper" id="crop-wrapper">
+                <div class="crop-wrapper">
                     <canvas id="source-canvas"></canvas>
                 </div>
+                
                 <div class="controls-row">
-                    <button type="button" class="secondary" onclick="rotateSource(-90)">↺ Pivoter Gauche</button>
-                    <button type="button" class="secondary" onclick="rotateSource(90)">Pivoter Droite ↻</button>
-                    <button type="button" class="secondary" onclick="resetPoints()">Réinitialiser coins</button>
+                    <button type="button" class="secondary" onclick="rotateSource(-90)">
+                        <svg viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.52-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.63 3.89l1.41-1.42c-.52-.75-.9-1.6-1.02-2.47zM12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8z"/></svg>
+                        Pivoter G.
+                    </button>
+                    <button type="button" class="secondary" onclick="rotateSource(90)">
+                        <svg viewBox="0 0 24 24"><path d="M15.55 5.55L14.14 7c.52.75.9 1.6 1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.92zM12 4c4.42 0 8 3.58 8 8 0 1.57-.46 3.03-1.24 4.26l-1.46-1.46c.45-.83.7-1.79.7-2.8 0-3.31-2.69-6-6-6v3L8 5l4-4v3zm5.19 11.47c-.5.75-.88 1.6-1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.89l-1.37 1.42zM12 20c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 9.74C4.46 10.97 4 12.43 4 14c0 4.42 3.58 8 8 8v-3l4 4-4 4v-3z"/></svg>
+                        Pivoter D.
+                    </button>
+                    <button type="button" class="secondary" onclick="resetPoints()">
+                        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                        Reset coins
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- PANNEAU DROIT : Réglages, Qualité & Aperçu -->
+        <!-- ÉTAPE 2 : ACTION BOUTON DE TRANSFERT VERS APERÇU -->
+        <div class="transfer-column">
+            <button type="button" class="btn-transfer" onclick="triggerManualWarp()" title="Générer le redressement et l'aperçu">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                </svg>
+            </button>
+            <div class="transfer-label">
+                Étape 2<br>
+                <span>Envoyer vers aperçu</span>
+            </div>
+        </div>
+
+        <!-- ÉTAPE 3 & 4 : CONTRASTE & EXPORT PDF -->
         <div class="panel">
-            <h3 style="margin-top: 0;">2. Réglage & Impression</h3>
-            
-            <label for="threshold">Contraste (Suppression des ombres)</label>
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Réglage Contraste & Validation</h3>
+            </div>
+
+            <label for="threshold">Modification du contraste (Suppression des ombres)</label>
             <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyBinarization()">
             
             <div class="qc-bar">
                 <span>Rendu impression :</span>
                 <span id="qc-badge" class="qc-status qc-optimal">En attente</span>
-                <span id="qc-ratio" style="color: #6c757d; font-size: 0.8rem;">Encre : --%</span>
+                <span id="qc-ratio" style="color: var(--text-muted); font-size: 0.8rem;">Encre : --%</span>
             </div>
             
             <div class="toolbar-zoom">
-                <span style="font-size: 0.8rem; font-weight: bold; color: #6c757d; margin-right: 10px;">Zoom :</span>
+                <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-right: 8px;">Zoom :</span>
                 <button type="button" class="secondary icon-btn" onclick="adjustZoom(-20)">-</button>
-                <span id="zoom-value" style="width: 50px; text-align: center; font-size: 0.9rem; font-weight: bold;">100%</span>
+                <span id="zoom-value" style="width: 45px; text-align: center; font-size: 0.88rem; font-weight: bold;">100%</span>
                 <button type="button" class="secondary icon-btn" onclick="adjustZoom(20)">+</button>
             </div>
 
@@ -226,11 +394,19 @@
                 <canvas id="result-canvas"></canvas>
             </div>
             
-            <div style="display: flex; flex-direction: column; margin-top: 1rem;">
-                <button type="button" class="success" onclick="exportPDF()">↓ Télécharger en PDF (Format A4)</button>
-                <button type="button" class="outline" onclick="resetApp()">Scanner un nouveau document</button>
+            <!-- ÉTAPE 4 : TELECHARGEMENT -->
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+                <button type="button" class="success" onclick="exportPDF()">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    4. Télécharger le document en PDF (Format A4)
+                </button>
+                <button type="button" class="outline" onclick="resetApp()">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    Scanner un nouveau document
+                </button>
             </div>
         </div>
+
     </div>
 
     <div class="footer">
@@ -257,13 +433,13 @@
         const qcRatio = document.getElementById('qc-ratio');
         const zoomValue = document.getElementById('zoom-value');
 
-        // Éléments du diagnostic source
+        // Diagnostics source
         const sqcSharpnessVal = document.getElementById('sqc-sharpness-val');
         const sqcBrightnessVal = document.getElementById('sqc-brightness-val');
         const sqcBadge = document.getElementById('sqc-badge');
         const sourceAlertBanner = document.getElementById('source-alert-banner');
 
-        // --- 1. DRAG & DROP ---
+        // --- 1. DRAG & DROP & IMPORT ---
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
         dropZone.addEventListener('drop', (e) => {
@@ -282,17 +458,16 @@
                     dropZone.style.display = 'none';
                     workspace.style.display = 'flex';
                     setupSourceCanvas();
-                    analyzeSourceImage(); // Lancement du contrôle qualité d'emblée
-                    resetPoints();
+                    analyzeSourceImage();
+                    resetPoints(false); // Initialise les coins sans lancer la transformation automatique
                 };
                 rawImage.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        // --- 1.BIS : ANALYSE QUALITÉ IMAGE SOURCE (FLOU + LUMINOSITÉ) ---
+        // --- CONTROLE QUALITÉ SOURCE ---
         function analyzeSourceImage() {
-            // Création d'un sous-canvas basse résolution pour un traitement instantané
             const checkCanvas = document.createElement('canvas');
             const maxDim = 600;
             let w = rawImage.width;
@@ -309,7 +484,6 @@
             const imageData = cCtx.getImageData(0, 0, w, h);
             const data = imageData.data;
 
-            // 1. Matrice de luminance en niveaux de gris
             const gray = new Float32Array(w * h);
             let sumLuminance = 0;
 
@@ -319,9 +493,8 @@
                 sumLuminance += lum;
             }
 
-            const avgBrightness = sumLuminance / (w * h); // Luminosité moyenne (0 à 255)
+            const avgBrightness = sumLuminance / (w * h);
 
-            // 2. Calcul de la variance du Laplacien (Détection du flou)
             let laplacianSum = 0;
             let count = 0;
             const laplacianValues = [];
@@ -329,7 +502,6 @@
             for (let y = 1; y < h - 1; y++) {
                 for (let x = 1; x < w - 1; x++) {
                     const idx = y * w + x;
-                    // Noyau Laplacien 3x3 standard
                     const lap = Math.abs(
                         4 * gray[idx] -
                         gray[idx - 1] - gray[idx + 1] -
@@ -346,9 +518,8 @@
             for (let i = 0; i < laplacianValues.length; i++) {
                 varianceSum += Math.pow(laplacianValues[i] - meanLap, 2);
             }
-            const blurScore = varianceSum / count; // Score de netteté (Variance du Laplacien)
+            const blurScore = varianceSum / count;
 
-            // Interprétation des scores
             displaySourceQualityReport(blurScore, avgBrightness);
         }
 
@@ -356,7 +527,6 @@
             sqcSharpnessVal.textContent = Math.round(blurScore);
             sqcBrightnessVal.textContent = `${Math.round((brightness / 255) * 100)}%`;
 
-            // Seuils empiriques ajustés pour documents texte photographiés
             const isTooBlurry = blurScore < 100;
             const isSlightlyBlurry = blurScore >= 100 && blurScore < 250;
             const isDark = brightness < 70;
@@ -366,19 +536,17 @@
             sourceAlertBanner.className = '';
 
             if (isTooBlurry || isVeryDark) {
-                // Image inexploitable
                 sqcBadge.textContent = 'Photo inexploitable';
                 sqcBadge.classList.add('qc-danger');
                 sourceAlertBanner.classList.add('alert-danger');
                 sourceAlertBanner.style.display = 'block';
 
                 let cause = [];
-                if (isTooBlurry) cause.push("Image trop floue (manque de mise au point ou bougé)");
+                if (isTooBlurry) cause.push("Image trop floue (manque de mise au point/bougé)");
                 if (isVeryDark) cause.push("Éclairage insuffisant / Sombre");
 
-                sourceAlertBanner.innerHTML = `⚠️ <strong>Attention :</strong> ${cause.join(' et ')}. La binarisation risque de rendre le texte totalement illisible. Demandant une nouvelle photo à l'agent.`;
+                sourceAlertBanner.innerHTML = `⚠️ <strong>Attention :</strong> ${cause.join(' et ')}. Demander une nouvelle photo à l'agent.`;
             } else if (isSlightlyBlurry || isDark) {
-                // Image dégradée mais potentiellement exploitable
                 sqcBadge.textContent = 'Qualité moyenne';
                 sqcBadge.classList.add('qc-warning');
                 sourceAlertBanner.classList.add('alert-warning');
@@ -388,25 +556,24 @@
                 if (isSlightlyBlurry) hint.push("Légèrement floue");
                 if (isDark) hint.push("Lumière faible");
 
-                sourceAlertBanner.innerHTML = `⚠️ <strong>Avertissement :</strong> Photo ${hint.join(' & ')}. Ajustez finement le curseur de contraste à droite pour préserver le texte.`;
+                sourceAlertBanner.innerHTML = `⚠️ <strong>Avertissement :</strong> Photo ${hint.join(' & ')}. Ajustez finement le contraste à l'étape 3.`;
             } else {
-                // Image optimale
                 sqcBadge.textContent = 'Excellente photo';
                 sqcBadge.classList.add('qc-optimal');
                 sourceAlertBanner.classList.add('alert-success');
                 sourceAlertBanner.style.display = 'block';
-                sourceAlertBanner.innerHTML = `✓ <strong>Photo conforme :</strong> Bonne netteté et luminosité optimale. Le traitement sera très net.`;
+                sourceAlertBanner.innerHTML = `✓ <strong>Photo conforme :</strong> Bonne netteté et luminosité optimale.`;
             }
         }
 
-        // --- 2. GESTION DU CANVAS ET DES COINS DE PERSPECTIVE ---
+        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE (SANS CRASH) ---
         function setupSourceCanvas() {
             sourceCanvas.width = rawImage.width;
             sourceCanvas.height = rawImage.height;
             drawSource();
         }
 
-        function resetPoints() {
+        function resetPoints(autoWarp = false) {
             const w = sourceCanvas.width;
             const h = sourceCanvas.height;
             const padX = w * 0.05;
@@ -419,29 +586,27 @@
                 { x: padX, y: h - padY }      // Bas-Gauche
             ];
             drawSource();
-            processWarp();
+            if (autoWarp) triggerManualWarp();
         }
 
         function drawSource() {
             sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
             sCtx.drawImage(rawImage, 0, 0);
 
-            // Dessiner le polygone de sélection
             sCtx.beginPath();
             sCtx.moveTo(corners[0].x, corners[0].y);
             for (let i = 1; i < 4; i++) {
                 sCtx.lineTo(corners[i].x, corners[i].y);
             }
             sCtx.closePath();
-            sCtx.fillStyle = 'rgba(0, 86, 179, 0.15)';
+            sCtx.fillStyle = 'rgba(0, 86, 179, 0.18)';
             sCtx.fill();
             sCtx.strokeStyle = '#0056b3';
             sCtx.lineWidth = Math.max(3, sourceCanvas.width / 300);
             sCtx.stroke();
 
-            // Dessiner les poignées aux 4 coins
             const radius = Math.max(10, sourceCanvas.width / 80);
-            corners.forEach((pt, idx) => {
+            corners.forEach((pt) => {
                 sCtx.beginPath();
                 sCtx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
                 sCtx.fillStyle = '#ffffff';
@@ -452,7 +617,6 @@
             });
         }
 
-        // --- INTERACTION SOURIS / TOUCH ---
         function getCanvasCoords(e) {
             const rect = sourceCanvas.getBoundingClientRect();
             const scaleX = sourceCanvas.width / rect.width;
@@ -467,7 +631,7 @@
 
         function handleStart(e) {
             const pos = getCanvasCoords(e);
-            const radius = Math.max(25, sourceCanvas.width / 40);
+            const radius = Math.max(30, sourceCanvas.width / 35);
             activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < radius);
         }
 
@@ -477,14 +641,11 @@
             const pos = getCanvasCoords(e);
             corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x));
             corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
-            drawSource();
+            drawSource(); // Fluidité parfaite : redessine uniquement les poignées, pas de calcul lourd
         }
 
         function handleEnd() {
-            if (activePoint !== -1) {
-                activePoint = -1;
-                processWarp();
-            }
+            activePoint = -1;
         }
 
         sourceCanvas.addEventListener('mousedown', handleStart);
@@ -514,21 +675,26 @@
             rawImage = new Image();
             rawImage.onload = () => {
                 setupSourceCanvas();
-                analyzeSourceImage(); // Re-analyser après rotation
-                resetPoints();
+                analyzeSourceImage();
+                resetPoints(false);
             };
             rawImage.src = tempCanvas.toDataURL();
         }
 
-        // --- 3. ALGORITHME DE PERSPECTIVE ---
-        function processWarp() {
+        // --- 3. DÉCLENCHEMENT MANUEL DE L'ÉTAPE 2 (REDRESSEMENT PERSPECTIVE) ---
+        function triggerManualWarp() {
+            if (!rawImage.src || sourceCanvas.width === 0) {
+                alert("Veuillez d'abord charger une photo dans le panneau 1.");
+                return;
+            }
+
             const topW = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
             const botW = Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y);
             const leftH = Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y);
             const rightH = Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y);
 
-            const targetW = Math.max(topW, botW);
-            const targetH = Math.max(leftH, rightH);
+            const targetW = Math.round(Math.max(topW, botW));
+            const targetH = Math.round(Math.max(leftH, rightH));
 
             unbinarizedCanvas.width = targetW;
             unbinarizedCanvas.height = targetH;
@@ -576,7 +742,7 @@
             applyBinarization();
         }
 
-        // --- 4. BINARISATION & CONTROLE QUALITE RENDU ---
+        // --- 4. ÉTAPE 3 : BINARISATION & CONTROLE QUALITÉ RENDU ---
         function applyBinarization() {
             if (!unbinarizedCanvas.width) return;
 
@@ -607,18 +773,18 @@
             qcBadge.className = 'qc-status';
             
             if (inkPercentage < 2) {
-                qcBadge.textContent = 'Trop clair / Risque illisible';
+                qcBadge.textContent = 'Trop clair / Illisible';
                 qcBadge.classList.add('qc-danger');
             } else if (inkPercentage >= 2 && inkPercentage <= 15) {
                 qcBadge.textContent = 'Lisibilité Optimale';
                 qcBadge.classList.add('qc-optimal');
             } else {
-                qcBadge.textContent = 'Ombres / Surconsommation encre';
+                qcBadge.textContent = 'Ombres / Surconsommation';
                 qcBadge.classList.add('qc-warning');
             }
         }
 
-        // --- 5. ZOOM, EXPORT & RESET ---
+        // --- 5. ÉTAPE 4 : EXPORT PDF & ZOOM & RESET ---
         function adjustZoom(delta) {
             currentZoom = Math.max(20, Math.min(300, currentZoom + delta));
             resultCanvas.style.width = currentZoom + '%';
@@ -626,7 +792,7 @@
         }
 
         function exportPDF() {
-            if (!resultCanvas.width) { alert("Veuillez charger un document."); return; }
+            if (!resultCanvas.width) { alert("Veuillez d'abord générer l'aperçu."); return; }
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pdfWidth = pdf.internal.pageSize.getWidth();
