@@ -2,58 +2,243 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Scanner Documentaire Auto</title>
-    <!-- Importation de OpenCV.js (Requis pour la vision par ordinateur) -->
-    <script async src="https://docs.opencv.org/4.7.0/opencv.js"></script>
-    <!-- Importation de jscanify (L'algorithme de détection de document) -->
-    <script src="https://cdn.jsdelivr.net/gh/ColonelParrot/jscanify@master/src/jscanify.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traitement Justificatifs - CHU</title>
+    
+    <!-- Librairie Cropper.js (Légère et fiable) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <style>
-        /* ... Conservez le CSS précédent ... */
-        #loading { display: none; color: #d9534f; font-weight: bold; margin-top: 10px; }
+        :root {
+            --primary-color: #0056b3;
+            --bg-color: #f4f6f9;
+            --panel-bg: #ffffff;
+            --border-color: #ced4da;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1300px;
+        }
+        .panel {
+            background: var(--panel-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+        /* Zone de Drop */
+        #drop-zone {
+            border: 2px dashed var(--primary-color);
+            border-radius: 6px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+        /* Conteneurs dynamiques */
+        #crop-container, #result-container {
+            display: none;
+            margin-top: 1rem;
+        }
+        .img-container {
+            max-height: 500px;
+            margin-bottom: 1rem;
+            background-color: #e9ecef;
+            display: flex;
+            justify-content: center;
+        }
+        img { max-width: 100%; }
+        
+        /* Boutons et Inputs */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
+        }
+        button.secondary { background-color: #6c757d; }
+        label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
+        input[type="range"] { width: 100%; margin-bottom: 1rem; }
+        
+        #final-canvas {
+            max-width: 100%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
-    <!-- ... Conservez la structure HTML (Drop zone, canvas) ... -->
-    <div id="loading">Traitement de l'algorithme en cours...</div>
+
+    <div style="text-align: center; margin-bottom: 2rem; width: 100%;">
+        <h2 style="margin: 0;">Outil de traitement des justificatifs</h2>
+        <p style="color: #28a745; font-weight: bold; margin-top: 5px;">■ Traitement 100% Local (Client-Side)</p>
+    </div>
+
+    <div class="layout">
+        <!-- Colonne Gauche : Espace de Travail (Recadrage) -->
+        <div class="panel">
+            <h3 style="margin-top: 0;">1. Préparation du document</h3>
+            
+            <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+                <p style="margin:0;">Cliquez ou glissez la photo du document ici</p>
+                <input type="file" id="file-input" accept="image/*" style="display: none;">
+            </div>
+
+            <div id="crop-container">
+                <div class="btn-group">
+                    <button type="button" class="secondary" onclick="cropper.rotate(-90)">↺ Pivoter Gauche</button>
+                    <button type="button" class="secondary" onclick="cropper.rotate(90)">Pivoter Droite ↻</button>
+                </div>
+                <div class="img-container">
+                    <img id="image-workspace" src="">
+                </div>
+                <button type="button" onclick="validateCrop()">Valider le recadrage &gt;&gt;</button>
+            </div>
+        </div>
+
+        <!-- Colonne Droite : Rendu (Effet Scan) -->
+        <div class="panel">
+            <h3 style="margin-top: 0;">2. Optimisation & Impression</h3>
+            
+            <div id="result-container">
+                <label for="threshold">Contraste (Seuil Noir & Blanc)</label>
+                <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyScanEffect()">
+                
+                <div class="img-container" style="background: transparent;">
+                    <canvas id="final-canvas"></canvas>
+                </div>
+                
+                <button type="button" style="background-color: #28a745;" onclick="downloadResult()">↓ Télécharger le document optimisé</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Attendre que OpenCV soit chargé
-        let scanner;
-        cv['onRuntimeInitialized'] = () => {
-            scanner = new jscanify();
-            console.log("Moteur de vision par ordinateur prêt.");
-        };
+        let cropper;
+        let croppedCanvasData; // Stocke l'image recadrée brute
+        const imageWorkspace = document.getElementById('image-workspace');
+        const finalCanvas = document.getElementById('final-canvas');
+        const ctx = finalCanvas.getContext('2d', { willReadFrequently: true });
 
-        function processFile(file) {
-            document.getElementById('loading').style.display = 'block';
-            const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    if(!scanner) {
-                        alert("Le moteur d'analyse n'est pas encore prêt, réessayez dans 2 secondes.");
-                        return;
-                    }
-
-                    // 1. Détection automatique des contours et recadrage (Perspective transform)
-                    const paperImage = scanner.extractPaper(img, 1000, 1000); 
-
-                    // 2. Application du filtre Noir & Blanc / Scan
-                    const resultCanvas = scanner.highlightPaper(paperImage);
-
-                    // 3. Affichage sur notre Canvas
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = resultCanvas.width;
-                    canvas.height = resultCanvas.height;
-                    ctx.drawImage(resultCanvas, 0, 0);
-                    
-                    document.getElementById('loading').style.display = 'none';
-                    canvas.style.display = 'block';
+        // --- 1. Gestion de l'import ---
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    initCropper(event.target.result);
                 };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // --- 2. Initialisation de l'outil de recadrage ---
+        function initCropper(imageSrc) {
+            document.getElementById('drop-zone').style.display = 'none';
+            document.getElementById('crop-container').style.display = 'block';
+            document.getElementById('result-container').style.display = 'none';
+
+            imageWorkspace.src = imageSrc;
+            
+            if (cropper) { cropper.destroy(); }
+            
+            cropper = new Cropper(imageWorkspace, {
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 0.9,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+            });
+        }
+
+        // --- 3. Validation du recadrage ---
+        function validateCrop() {
+            if (!cropper) return;
+            
+            // Récupérer la zone découpée sous forme de canvas
+            const canvas = cropper.getCroppedCanvas({
+                maxWidth: 2480, // Limite à une résolution A4 300dpi max pour la performance
+                maxHeight: 3508
+            });
+
+            // Stocker les données de l'image recadrée pour le filtre N&B
+            croppedCanvasData = document.createElement('canvas');
+            croppedCanvasData.width = canvas.width;
+            croppedCanvasData.height = canvas.height;
+            croppedCanvasData.getContext('2d').drawImage(canvas, 0, 0);
+
+            // Préparer le canvas d'affichage final
+            finalCanvas.width = canvas.width;
+            finalCanvas.height = canvas.height;
+
+            document.getElementById('result-container').style.display = 'block';
+            applyScanEffect();
+        }
+
+        // --- 4. Application de l'effet Scan (Binarisation) ---
+        function applyScanEffect() {
+            if (!croppedCanvasData) return;
+
+            const threshold = parseInt(document.getElementById('threshold').value);
+            
+            // Copier l'image recadrée originale sur le canvas final
+            ctx.drawImage(croppedCanvasData, 0, 0);
+            
+            // Extraire et traiter les pixels
+            const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Calcul de luminance standard
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                
+                // Application du seuil
+                const color = luminance >= threshold ? 255 : 0;
+                
+                data[i] = color;     // R
+                data[i + 1] = color; // G
+                data[i + 2] = color; // B
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // --- 5. Exportation ---
+        function downloadResult() {
+            const link = document.createElement('a');
+            link.download = 'AT_scanne.png';
+            link.href = finalCanvas.toDataURL('image/png', 1.0);
+            link.click();
         }
     </script>
 </body>
