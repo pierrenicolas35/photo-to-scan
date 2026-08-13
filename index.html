@@ -100,7 +100,7 @@
             margin: 0;
         }
 
-        /* Inputs Métadonnées (Saisie libre) */
+        /* Inputs Métadonnées (Étape 4) */
         .meta-group {
             display: flex;
             flex-direction: column;
@@ -109,7 +109,8 @@
             padding: 12px;
             border-radius: 8px;
             border: 1px solid var(--border);
-            margin-bottom: 1rem;
+            margin-top: auto;
+            margin-bottom: 10px;
         }
         .input-field {
             display: flex;
@@ -139,7 +140,7 @@
         #drop-zone {
             border: 2px dashed var(--primary);
             border-radius: 8px;
-            height: 350px;
+            height: 380px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -159,7 +160,7 @@
         .crop-wrapper {
             position: relative;
             width: 100%;
-            height: 420px;
+            height: 480px;
             background-color: #e9ecef;
             margin-bottom: 1rem;
             overflow: hidden;
@@ -172,7 +173,6 @@
         
         #source-canvas {
             position: absolute;
-            cursor: crosshair;
             max-width: 100%;
             max-height: 100%;
         }
@@ -240,13 +240,13 @@
             transition: width 0.1s ease;
         }
 
-        /* Queue Multi-Pages Réordonnable (Drag and Drop Thumbnails) */
+        /* Queue Multi-Pages (Vignettes) */
         .page-queue-container {
             background: #f8f9fa;
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 8px 12px;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
         .queue-header {
             display: flex;
@@ -420,31 +420,11 @@
 
     <div class="main-layout">
         
-        <!-- ÉTAPE 1 : IMPORTATION, MÉTADONNÉES ET RECADRAGE -->
+        <!-- ÉTAPE 1 : IMPORTATION ET RECADRAGE -->
         <div class="panel">
             <div class="step-header">
                 <div class="step-number">1</div>
-                <h3 class="step-title">Recadrage & Informations Document</h3>
-            </div>
-
-            <!-- Champs Métadonnées avec Saisie Libre -->
-            <div class="meta-group">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="input-field">
-                        <label for="doc-type">Type de document (Saisie libre)</label>
-                        <input type="text" id="doc-type" list="doc-type-suggestions" placeholder="ex: Arret_de_Travail">
-                        <datalist id="doc-type-suggestions">
-                            <option value="Arret_de_Travail"></option>
-                            <option value="Certificat_Medical"></option>
-                            <option value="Justificatif_RH"></option>
-                            <option value="Facture_Sante"></option>
-                        </datalist>
-                    </div>
-                    <div class="input-field">
-                        <label for="agent-name">Nom Prénom Agent</label>
-                        <input type="text" id="agent-name" placeholder="ex: DUPONT Jean">
-                    </div>
-                </div>
+                <h3 class="step-title">Recadrage & Redressement</h3>
             </div>
 
             <!-- Zone de Drop -->
@@ -481,6 +461,10 @@
                         <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                         Réinitialiser coins
                     </button>
+                    <button type="button" class="outline" onclick="changeSourceImage()" title="Charger une autre photo">
+                        <svg viewBox="0 0 24 24"><path d="M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z"/></svg>
+                        Changer
+                    </button>
                 </div>
             </div>
         </div>
@@ -498,7 +482,7 @@
             </div>
         </div>
 
-        <!-- ÉTAPE 3 & 4 : CONTRASTE & EXPORT PDF -->
+        <!-- ÉTAPE 3 & 4 : CONTRASTE, MULTI-PAGES & EXPORT PDF -->
         <div class="panel">
             <div class="step-header">
                 <div class="step-number">3</div>
@@ -537,16 +521,31 @@
                     <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Valider" pour réorganiser vos pages.</span>
                 </div>
             </div>
+
+            <!-- ÉTAPE 4 : MÉTADONNÉES ET TÉLÉCHARGEMENT -->
+            <div class="meta-group">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="input-field">
+                        <label for="doc-type">Type de document</label>
+                        <input type="text" id="doc-type" list="doc-type-suggestions" placeholder="ex: Arret_de_Travail">
+                        <datalist id="doc-type-suggestions">
+                            <option value="Arret_de_Travail"></option>
+                            <option value="Certificat_Medical"></option>
+                            <option value="Justificatif_RH"></option>
+                            <option value="Facture_Sante"></option>
+                        </datalist>
+                    </div>
+                    <div class="input-field">
+                        <label for="agent-name">Nom Prénom Agent</label>
+                        <input type="text" id="agent-name" placeholder="ex: DUPONT Jean">
+                    </div>
+                </div>
+            </div>
             
-            <!-- ÉTAPE 4 : TELECHARGEMENT -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
                 <button type="button" class="success" onclick="exportPDF()">
                     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     4. Télécharger le document (PDF A4)
-                </button>
-                <button type="button" class="outline" onclick="resetApp()">
-                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-                    Scanner un nouveau document
                 </button>
             </div>
         </div>
@@ -615,6 +614,11 @@
                 rawImage.src = e.target.result;
             };
             reader.readAsDataURL(file);
+        }
+
+        function changeSourceImage() {
+            fileInput.value = '';
+            fileInput.click();
         }
 
         // --- CONTROLE QUALITÉ SOURCE ---
@@ -717,7 +721,7 @@
             }
         }
 
-        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET BORDURES ---
+        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET CURSEURS ---
         function setupSourceCanvas() {
             sourceCanvas.width = rawImage.width;
             sourceCanvas.height = rawImage.height;
@@ -806,6 +810,36 @@
             const projY = p1.y + t * dy;
             return Math.hypot(pt.x - projX, pt.y - projY);
         }
+
+        // Gestion dynamique des curseurs au survol
+        sourceCanvas.addEventListener('mousemove', (e) => {
+            if (activePoint !== -1 || activeEdge !== -1) return; // Si un glissement est déjà en cours
+            
+            const pos = getCanvasCoords(e);
+            const pointRadius = Math.max(30, sourceCanvas.width / 35);
+            const hoverCorner = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pointRadius);
+
+            if (hoverCorner !== -1) {
+                sourceCanvas.style.cursor = 'crosshair'; // Croix au survol d'un coin
+                return;
+            }
+
+            const edgeThreshold = Math.max(25, sourceCanvas.width / 40);
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (i + 1) % 4;
+                if (distanceToSegment(pos, corners[i], corners[nextIdx]) < edgeThreshold) {
+                    // Adapter le curseur d'étirement de bord selon l'orientation de l'arête (0: haut, 1: droit, 2: bas, 3: gauche)
+                    if (i === 0 || i === 2) {
+                        sourceCanvas.style.cursor = 'ns-resize'; // Flèches haut-bas pour les arêtes horizontales
+                    } else {
+                        sourceCanvas.style.cursor = 'ew-resize'; // Flèches gauche-droite pour les arêtes verticales
+                    }
+                    return;
+                }
+            }
+
+            sourceCanvas.style.cursor = 'default';
+        });
 
         function handleStart(e) {
             const pos = getCanvasCoords(e);
@@ -1007,14 +1041,13 @@
             }
         }
 
-        // --- 5. FUSION MULTI-PAGES & DRAG AND DROP REORDER ---
+        // --- 5. FUSION MULTI-PAGES & REORDONNEMENT ---
         function addCurrentPageAndReset() {
             if (!resultCanvas.width) {
                 alert("Veuillez d'abord générer un aperçu de document.");
                 return;
             }
 
-            // 1. Mettre de côté l'image binarisée actuelle
             const imgDataUrl = resultCanvas.toDataURL('image/jpeg', 0.92);
             pdfPageQueue.push({
                 dataUrl: imgDataUrl,
@@ -1023,8 +1056,6 @@
             });
 
             renderQueueThumbnails();
-
-            // 2. Réinitialiser uniquement la partie de travail gauche/droite pour le document suivant
             clearCurrentWorkspace();
         }
 
@@ -1034,7 +1065,6 @@
             fileInput.value = '';
             rawImage = new Image();
             
-            // Nettoyage des canvas de travail
             sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
             rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
             unbinarizedCanvas = document.createElement('canvas');
@@ -1050,7 +1080,6 @@
             renderQueueThumbnails();
         }
 
-        // Rendu des vignettes avec gestion du glisser-déposer pour réorganiser l'ordre des pages
         let draggedQueueIndex = null;
 
         function renderQueueThumbnails() {
@@ -1077,7 +1106,6 @@
                     <div class="thumb-del" onclick="event.stopPropagation(); removePageFromQueue(${idx})" title="Supprimer la page">×</div>
                 `;
 
-                // Événements de Drag & Drop pour réordonner les pages
                 thumb.addEventListener('dragstart', (e) => {
                     draggedQueueIndex = idx;
                     thumb.classList.add('dragging');
@@ -1097,7 +1125,6 @@
                 thumb.addEventListener('drop', (e) => {
                     e.preventDefault();
                     if (draggedQueueIndex !== null && draggedQueueIndex !== idx) {
-                        // Permuter ou insérer la page déplacée à la nouvelle position
                         const draggedItem = pdfPageQueue.splice(draggedQueueIndex, 1)[0];
                         pdfPageQueue.splice(idx, 0, draggedItem);
                         renderQueueThumbnails();
@@ -1108,12 +1135,11 @@
             });
         }
 
-        // --- 6. EXPORT PDF AVEC NOMMAGE STRUCTURÉ ---
+        // --- 6. EXPORT PDF & REINIT GLOBALE ---
         function formatFilename() {
             let docType = document.getElementById('doc-type').value.trim();
             let agentName = document.getElementById('agent-name').value.trim();
             
-            // Nettoyage des caractères spéciaux
             docType = docType ? docType.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Document';
             agentName = agentName ? agentName.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Anonyme';
             
@@ -1132,7 +1158,6 @@
             if (pdfPageQueue.length > 0) {
                 pagesToExport = pdfPageQueue;
             } else if (resultCanvas.width > 0) {
-                // Si l'utilisateur n'a pas appuyé sur "Valider" mais veut télécharger directement la page active
                 pagesToExport.push({
                     dataUrl: resultCanvas.toDataURL('image/jpeg', 0.95),
                     width: resultCanvas.width,
@@ -1171,6 +1196,9 @@
 
             const fileName = formatFilename();
             pdf.save(fileName);
+
+            // Réinitialisation complète du site après téléchargement
+            resetApp();
         }
 
         function adjustZoom(delta) {
@@ -1183,6 +1211,13 @@
             clearCurrentWorkspace();
             pdfPageQueue = [];
             renderQueueThumbnails();
+            
+            // Remise à zéro des champs métadonnées
+            document.getElementById('doc-type').value = "Arret_de_Travail";
+            document.getElementById('agent-name').value = "";
+            currentZoom = 100;
+            resultCanvas.style.width = '100%';
+            zoomValue.textContent = '100%';
         }
     </script>
 </body>
