@@ -2,250 +2,59 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traitement Documentaire (Effet Scan)</title>
+    <title>Scanner Documentaire Auto</title>
+    <!-- Importation de OpenCV.js (Requis pour la vision par ordinateur) -->
+    <script async src="https://docs.opencv.org/4.7.0/opencv.js"></script>
+    <!-- Importation de jscanify (L'algorithme de détection de document) -->
+    <script src="https://cdn.jsdelivr.net/gh/ColonelParrot/jscanify@master/src/jscanify.min.js"></script>
     <style>
-        :root {
-            --primary-color: #0056b3;
-            --bg-color: #f4f6f9;
-            --panel-bg: #ffffff;
-            --border-color: #ced4da;
-        }
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg-color);
-            color: #333;
-            margin: 0;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .header-note {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .badge {
-            background-color: #28a745;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        .layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            width: 100%;
-            max-width: 1200px;
-        }
-        .panel {
-            background: var(--panel-bg);
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-        }
-        #drop-zone {
-            border: 3px dashed var(--border-color);
-            border-radius: 8px;
-            height: 250px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background-color: #f8f9fa;
-        }
-        #drop-zone.hover {
-            border-color: var(--primary-color);
-            background-color: #e9ecef;
-        }
-        #controls {
-            display: none;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-color);
-        }
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        input[type="range"] {
-            width: 100%;
-            margin-bottom: 1.5rem;
-        }
-        button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 12px;
-            width: 100%;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #004494;
-        }
-        .preview-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            min-height: 400px;
-            overflow: hidden;
-        }
-        canvas {
-            max-width: 100%;
-            max-height: 70vh;
-            display: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+        /* ... Conservez le CSS précédent ... */
+        #loading { display: none; color: #d9534f; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="header-note">
-        <h1>Optimisation des justificatifs</h1>
-        <p><span class="badge">Sécurité</span> Traitement 100% local. Les documents ne sont transférés sur aucun serveur.</p>
-    </div>
-
-    <div class="layout">
-        <!-- Colonne Gauche : Actions -->
-        <div class="panel">
-            <h3>1. Import du document</h3>
-            <div id="drop-zone">
-                <svg width="48" height="48" fill="none" stroke="#6c757d" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 10px;">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                </svg>
-                <p style="margin:0; font-weight: 600; color: #495057;">Glisser-déposer la photo ici</p>
-                <p style="margin:5px 0 0 0; font-size: 0.9rem; color: #6c757d;">ou cliquer pour parcourir</p>
-                <input type="file" id="file-input" accept="image/*" style="display: none;">
-            </div>
-
-            <div id="controls">
-                <h3>2. Réglage de la lisibilité</h3>
-                <label for="threshold">Ajustement des contrastes / ombres</label>
-                <input type="range" id="threshold" min="30" max="220" value="128">
-                
-                <button id="download-btn">Télécharger pour impression</button>
-            </div>
-        </div>
-
-        <!-- Colonne Droite : Aperçu -->
-        <div class="panel">
-            <h3 style="margin-top: 0;">Aperçu avant impression</h3>
-            <div class="preview-container">
-                <canvas id="canvas"></canvas>
-            </div>
-        </div>
-    </div>
+    <!-- ... Conservez la structure HTML (Drop zone, canvas) ... -->
+    <div id="loading">Traitement de l'algorithme en cours...</div>
 
     <script>
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const controls = document.getElementById('controls');
-        const thresholdInput = document.getElementById('threshold');
-        const downloadBtn = document.getElementById('download-btn');
+        // Attendre que OpenCV soit chargé
+        let scanner;
+        cv['onRuntimeInitialized'] = () => {
+            scanner = new jscanify();
+            console.log("Moteur de vision par ordinateur prêt.");
+        };
 
-        let originalImage = new Image();
-
-        // Gestion du Drag & Drop
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('hover');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('hover');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('hover');
-            if (e.dataTransfer.files.length > 0) {
-                processFile(e.dataTransfer.files[0]);
-            }
-        });
-
-        dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) processFile(e.target.files[0]);
-        });
-
-        // Chargement du fichier
         function processFile(file) {
-            if (!file.type.startsWith('image/')) {
-                alert('Format non supporté. Veuillez charger une image.');
-                return;
-            }
+            document.getElementById('loading').style.display = 'block';
             const reader = new FileReader();
+            
             reader.onload = (e) => {
-                originalImage.onload = () => {
-                    // Ajustement des dimensions du canvas
-                    canvas.width = originalImage.width;
-                    canvas.height = originalImage.height;
+                const img = new Image();
+                img.onload = () => {
+                    if(!scanner) {
+                        alert("Le moteur d'analyse n'est pas encore prêt, réessayez dans 2 secondes.");
+                        return;
+                    }
+
+                    // 1. Détection automatique des contours et recadrage (Perspective transform)
+                    const paperImage = scanner.extractPaper(img, 1000, 1000); 
+
+                    // 2. Application du filtre Noir & Blanc / Scan
+                    const resultCanvas = scanner.highlightPaper(paperImage);
+
+                    // 3. Affichage sur notre Canvas
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = resultCanvas.width;
+                    canvas.height = resultCanvas.height;
+                    ctx.drawImage(resultCanvas, 0, 0);
+                    
+                    document.getElementById('loading').style.display = 'none';
                     canvas.style.display = 'block';
-                    controls.style.display = 'block';
-                    applyScanFilter();
                 };
-                originalImage.src = e.target.result;
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
-
-        // Algorithme de traitement d'image
-        function applyScanFilter() {
-            if (!originalImage.src) return;
-            
-            // 1. Dessiner l'image source
-            ctx.drawImage(originalImage, 0, 0);
-            
-            // 2. Extraire les données pixel par pixel
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            const threshold = parseInt(thresholdInput.value);
-
-            // 3. Boucle de conversion Noir & Blanc
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                
-                // Calcul de la luminance (perception humaine)
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                
-                // Binarisation selon le seuil défini par le curseur
-                const pixelValue = luminance >= threshold ? 255 : 0;
-                
-                data[i] = pixelValue;     // Rouge
-                data[i + 1] = pixelValue; // Vert
-                data[i + 2] = pixelValue; // Bleu
-                // L'opacité (data[i + 3]) reste inchangée
-            }
-            
-            // 4. Appliquer le résultat
-            ctx.putImageData(imageData, 0, 0);
-        }
-
-        // Écouteurs d'événements pour les contrôles
-        thresholdInput.addEventListener('input', applyScanFilter);
-
-        downloadBtn.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.download = 'document_scanne.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        });
     </script>
 </body>
 </html>
