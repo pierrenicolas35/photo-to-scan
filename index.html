@@ -69,7 +69,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            min-height: 680px;
+            min-height: 700px;
         }
 
         .step-header {
@@ -100,7 +100,7 @@
             margin: 0;
         }
 
-        /* Inputs Métadonnées */
+        /* Inputs Métadonnées (Saisie libre) */
         .meta-group {
             display: flex;
             flex-direction: column;
@@ -122,7 +122,7 @@
             color: var(--text-dark);
             margin: 0;
         }
-        .input-field input, .input-field select {
+        .input-field input {
             padding: 8px 10px;
             border: 1px solid var(--border);
             border-radius: 5px;
@@ -130,7 +130,7 @@
             outline: none;
             width: 100%;
         }
-        .input-field input:focus, .input-field select:focus {
+        .input-field input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(0,86,179,0.15);
         }
@@ -223,7 +223,7 @@
         /* Aperçu & Zoom */
         .preview-wrapper {
             width: 100%; 
-            height: 320px; 
+            height: 280px; 
             background: #e9ecef;
             overflow: auto;
             border-radius: 6px; 
@@ -240,7 +240,7 @@
             transition: width 0.1s ease;
         }
 
-        /* Conteneur Multi-Pages (Queue de fusion) */
+        /* Queue Multi-Pages Réordonnable (Drag and Drop Thumbnails) */
         .page-queue-container {
             background: #f8f9fa;
             border: 1px solid var(--border);
@@ -254,30 +254,36 @@
             align-items: center;
             font-size: 0.82rem;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
         .queue-thumbnails {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             overflow-x: auto;
-            padding-bottom: 4px;
-            min-height: 50px;
+            padding: 6px 2px;
+            min-height: 75px;
             align-items: center;
         }
         .thumb-item {
             position: relative;
             flex-shrink: 0;
-            width: 40px;
-            height: 52px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
+            width: 50px;
+            height: 65px;
+            border: 2px solid var(--primary);
+            border-radius: 5px;
             overflow: hidden;
             background: white;
+            cursor: grab;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s, opacity 0.2s;
         }
+        .thumb-item:active { cursor: grabbing; }
+        .thumb-item.dragging { opacity: 0.4; transform: scale(0.95); }
         .thumb-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            pointer-events: none;
         }
         .thumb-item .thumb-del {
             position: absolute;
@@ -286,14 +292,24 @@
             background: rgba(220,53,69,0.9);
             color: white;
             border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             font-weight: bold;
+        }
+        .thumb-item .thumb-badge {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
         }
 
         /* Indicateurs Qualité */
@@ -411,17 +427,18 @@
                 <h3 class="step-title">Recadrage & Informations Document</h3>
             </div>
 
-            <!-- Champs Métadonnées -->
+            <!-- Champs Métadonnées avec Saisie Libre -->
             <div class="meta-group">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="input-field">
-                        <label for="doc-type">Type de document</label>
-                        <select id="doc-type">
-                            <option value="Arret_de_Travail">Arrêt de Travail</option>
-                            <option value="Certificat_Medical">Certificat Médical</option>
-                            <option value="Justificatif_RH">Justificatif RH</option>
-                            <option value="Document">Autre Document</option>
-                        </select>
+                        <label for="doc-type">Type de document (Saisie libre)</label>
+                        <input type="text" id="doc-type" list="doc-type-suggestions" placeholder="ex: Arret_de_Travail">
+                        <datalist id="doc-type-suggestions">
+                            <option value="Arret_de_Travail"></option>
+                            <option value="Certificat_Medical"></option>
+                            <option value="Justificatif_RH"></option>
+                            <option value="Facture_Sante"></option>
+                        </datalist>
                     </div>
                     <div class="input-field">
                         <label for="agent-name">Nom Prénom Agent</label>
@@ -454,15 +471,12 @@
                 </div>
                 
                 <div class="controls-row">
-                    <!-- Bouton Pivoter Gauche compact SVG -->
                     <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(-90)" title="Pivoter à gauche">
                         <svg viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.52-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.63 3.89l1.41-1.42c-.52-.75-.9-1.6-1.02-2.47zM12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8z"/></svg>
                     </button>
-                    <!-- Bouton Pivoter Droite compact SVG -->
                     <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(90)" title="Pivoter à droite">
                         <svg viewBox="0 0 24 24"><path d="M15.55 5.55L14.14 7c.52.75.9 1.6 1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.92zM12 4c4.42 0 8 3.58 8 8 0 1.57-.46 3.03-1.24 4.26l-1.46-1.46c.45-.83.7-1.79.7-2.8 0-3.31-2.69-6-6-6v3L8 5l4-4v3zm5.19 11.47c-.5.75-.88 1.6-1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.89l-1.37 1.42zM12 20c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 9.74C4.46 10.97 4 12.43 4 14c0 4.42 3.58 8 8 8v-3l4 4-4 4v-3z"/></svg>
                     </button>
-                    <!-- Réinitialiser les coins -->
                     <button type="button" class="secondary" onclick="resetPoints()">
                         <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                         Réinitialiser coins
@@ -514,13 +528,13 @@
             <!-- Queue Multi-Pages (Mettre de côté pour merger) -->
             <div class="page-queue-container">
                 <div class="queue-header">
-                    <span>Document(s) en attente de fusion : <strong id="page-count-badge">0 page</strong></span>
-                    <button type="button" class="secondary" style="padding: 2px 8px; font-size: 0.75rem; flex: none;" onclick="addCurrentPageToQueue()">
-                        + Ajouter cette page
+                    <span>Document(s) prêt(s) pour fusion : <strong id="page-count-badge">0 page</strong></span>
+                    <button type="button" class="success" style="padding: 4px 10px; font-size: 0.78rem; flex: none;" onclick="addCurrentPageAndReset()">
+                        + Valider &amp; Ajouter au PDF
                     </button>
                 </div>
                 <div class="queue-thumbnails" id="queue-thumbnails">
-                    <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Ajouter" pour créer un PDF multi-pages.</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Valider" pour réorganiser vos pages.</span>
                 </div>
             </div>
             
@@ -572,6 +586,9 @@
         const sqcBrightnessVal = document.getElementById('sqc-brightness-val');
         const sqcBadge = document.getElementById('sqc-badge');
         const sourceAlertBanner = document.getElementById('source-alert-banner');
+
+        // Initialisation de la valeur par défaut pour la saisie libre
+        document.getElementById('doc-type').value = "Arret_de_Travail";
 
         // --- 1. DRAG & DROP & IMPORT ---
         dropZone.addEventListener('click', () => fileInput.click());
@@ -700,7 +717,7 @@
             }
         }
 
-        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET BORDURES (A4 HAUTE PRECISION) ---
+        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET BORDURES ---
         function setupSourceCanvas() {
             sourceCanvas.width = rawImage.width;
             sourceCanvas.height = rawImage.height;
@@ -727,7 +744,6 @@
             sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
             sCtx.drawImage(rawImage, 0, 0);
 
-            // Contour du quadrilatère
             sCtx.beginPath();
             sCtx.moveTo(corners[0].x, corners[0].y);
             for (let i = 1; i < 4; i++) {
@@ -740,7 +756,6 @@
             sCtx.lineWidth = Math.max(3, sourceCanvas.width / 300);
             sCtx.stroke();
 
-            // Dessiner les poignées de bords (segments)
             const edgeRadius = Math.max(7, sourceCanvas.width / 120);
             for (let i = 0; i < 4; i++) {
                 const nextIdx = (i + 1) % 4;
@@ -756,7 +771,6 @@
                 sCtx.stroke();
             }
 
-            // Dessiner les 4 poignées de coins
             const radius = Math.max(10, sourceCanvas.width / 80);
             corners.forEach((pt) => {
                 sCtx.beginPath();
@@ -797,7 +811,6 @@
             const pos = getCanvasCoords(e);
             const pointRadius = Math.max(30, sourceCanvas.width / 35);
             
-            // 1. Tester les poignées de coins d'abord
             activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pointRadius);
             
             if (activePoint !== -1) {
@@ -805,7 +818,6 @@
                 return;
             }
 
-            // 2. Tester les 4 bords (étirement de segment complet)
             const edgeThreshold = Math.max(25, sourceCanvas.width / 40);
             for (let i = 0; i < 4; i++) {
                 const nextIdx = (i + 1) % 4;
@@ -831,7 +843,6 @@
                 corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x));
                 corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
             } else if (activeEdge !== -1) {
-                // Translater les 2 coins associés à l'arête sélectionnée
                 const idx1 = activeEdge;
                 const idx2 = (activeEdge + 1) % 4;
                 const deltaX = pos.x - dragStartPos.x;
@@ -887,7 +898,7 @@
             rawImage.src = tempCanvas.toDataURL();
         }
 
-        // --- 3. DÉCLENCHEMENT DE L'APERÇU & REDRESSEMENT PROPRE (SANS CADRE PARASITE) ---
+        // --- 3. APERÇU ET REDRESSEMENT ---
         function triggerManualWarp() {
             if (!rawImage.src || sourceCanvas.width === 0) {
                 alert("Veuillez d'abord charger une photo dans le panneau 1.");
@@ -908,7 +919,6 @@
             resultCanvas.width = targetW;
             resultCanvas.height = targetH;
 
-            // Extraire l'image d'origine SANS la grille/les points dessinés dessus
             const cleanCanvas = document.createElement('canvas');
             cleanCanvas.width = sourceCanvas.width;
             cleanCanvas.height = sourceCanvas.height;
@@ -955,7 +965,7 @@
             applyBinarization();
         }
 
-        // --- 4. BINARISATION & CONTROLE QUALITÉ RENDU ---
+        // --- 4. BINARISATION ---
         function applyBinarization() {
             if (!unbinarizedCanvas.width) return;
 
@@ -997,14 +1007,14 @@
             }
         }
 
-        // --- 5. GESTION MULTI-PAGES & FUSION PDF ---
-        function addCurrentPageToQueue() {
+        // --- 5. FUSION MULTI-PAGES & DRAG AND DROP REORDER ---
+        function addCurrentPageAndReset() {
             if (!resultCanvas.width) {
                 alert("Veuillez d'abord générer un aperçu de document.");
                 return;
             }
 
-            // Cloner le canvas de résultat actuel
+            // 1. Mettre de côté l'image binarisée actuelle
             const imgDataUrl = resultCanvas.toDataURL('image/jpeg', 0.92);
             pdfPageQueue.push({
                 dataUrl: imgDataUrl,
@@ -1013,12 +1023,35 @@
             });
 
             renderQueueThumbnails();
+
+            // 2. Réinitialiser uniquement la partie de travail gauche/droite pour le document suivant
+            clearCurrentWorkspace();
+        }
+
+        function clearCurrentWorkspace() {
+            workspace.style.display = 'none';
+            dropZone.style.display = 'flex';
+            fileInput.value = '';
+            rawImage = new Image();
+            
+            // Nettoyage des canvas de travail
+            sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+            rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            unbinarizedCanvas = document.createElement('canvas');
+            
+            sourceAlertBanner.style.display = 'none';
+            qcBadge.textContent = 'En attente';
+            qcBadge.className = 'qc-status qc-warning';
+            qcRatio.textContent = 'Encre : --%';
         }
 
         function removePageFromQueue(index) {
             pdfPageQueue.splice(index, 1);
             renderQueueThumbnails();
         }
+
+        // Rendu des vignettes avec gestion du glisser-déposer pour réorganiser l'ordre des pages
+        let draggedQueueIndex = null;
 
         function renderQueueThumbnails() {
             const container = document.getElementById('queue-thumbnails');
@@ -1028,30 +1061,62 @@
             container.innerHTML = '';
 
             if (pdfPageQueue.length === 0) {
-                container.innerHTML = `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Ajouter" pour créer un PDF multi-pages.</span>`;
+                container.innerHTML = `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Valider" pour réorganiser vos pages.</span>`;
                 return;
             }
 
             pdfPageQueue.forEach((page, idx) => {
                 const thumb = document.createElement('div');
                 thumb.className = 'thumb-item';
+                thumb.draggable = true;
+                thumb.dataset.index = idx;
+                
                 thumb.innerHTML = `
                     <img src="${page.dataUrl}">
-                    <div class="thumb-del" onclick="removePageFromQueue(${idx})" title="Supprimer la page">×</div>
+                    <div class="thumb-badge">P.${idx + 1}</div>
+                    <div class="thumb-del" onclick="event.stopPropagation(); removePageFromQueue(${idx})" title="Supprimer la page">×</div>
                 `;
+
+                // Événements de Drag & Drop pour réordonner les pages
+                thumb.addEventListener('dragstart', (e) => {
+                    draggedQueueIndex = idx;
+                    thumb.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                thumb.addEventListener('dragend', () => {
+                    thumb.classList.remove('dragging');
+                    draggedQueueIndex = null;
+                });
+
+                thumb.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                thumb.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedQueueIndex !== null && draggedQueueIndex !== idx) {
+                        // Permuter ou insérer la page déplacée à la nouvelle position
+                        const draggedItem = pdfPageQueue.splice(draggedQueueIndex, 1)[0];
+                        pdfPageQueue.splice(idx, 0, draggedItem);
+                        renderQueueThumbnails();
+                    }
+                });
+
                 container.appendChild(thumb);
             });
         }
 
-        // --- 6. EXPORT PDF DYNAMIQUE AVEC NOMMAGE STRUCTURÉ ---
+        // --- 6. EXPORT PDF AVEC NOMMAGE STRUCTURÉ ---
         function formatFilename() {
-            const docType = document.getElementById('doc-type').value;
+            let docType = document.getElementById('doc-type').value.trim();
             let agentName = document.getElementById('agent-name').value.trim();
             
-            // Nettoyage des caractères spéciaux pour le nom de fichier
+            // Nettoyage des caractères spéciaux
+            docType = docType ? docType.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Document';
             agentName = agentName ? agentName.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Anonyme';
             
-            // Date du jour JJ-MM-AAAA
             const now = new Date();
             const day = String(now.getDate()).padStart(2, '0');
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -1067,13 +1132,14 @@
             if (pdfPageQueue.length > 0) {
                 pagesToExport = pdfPageQueue;
             } else if (resultCanvas.width > 0) {
+                // Si l'utilisateur n'a pas appuyé sur "Valider" mais veut télécharger directement la page active
                 pagesToExport.push({
                     dataUrl: resultCanvas.toDataURL('image/jpeg', 0.95),
                     width: resultCanvas.width,
                     height: resultCanvas.height
                 });
             } else {
-                alert("Veuillez d'abord générer un aperçu du document.");
+                alert("Veuillez d'abord charger un document et générer son aperçu.");
                 return;
             }
 
@@ -1114,14 +1180,9 @@
         }
 
         function resetApp() {
-            workspace.style.display = 'none'; dropZone.style.display = 'flex';
-            fileInput.value = ''; currentZoom = 100;
-            resultCanvas.style.width = '100%'; zoomValue.textContent = '100%';
-            rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-            sourceAlertBanner.style.display = 'none';
+            clearCurrentWorkspace();
             pdfPageQueue = [];
             renderQueueThumbnails();
-            qcBadge.textContent = 'En attente'; qcBadge.className = 'qc-status qc-warning'; qcRatio.textContent = 'Encre : --%';
         }
     </script>
 </body>
