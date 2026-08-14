@@ -5,44 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Optimisation des justificatifs</title>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23009ce0'><path d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'/></svg>">
+    <!-- Favicon SVG natif (Intégré en Data-URI pour les favoris) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230056b3'><path d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'/><circle cx='17' cy='17' r='4' fill='%2328a745'/><path d='M15.8 17l-1.2-1.2-.8.8 2 2 3.2-3.2-.8-.8z' fill='white'/></svg>">
 
-    <!-- jsPDF -->
+    <!-- jsPDF pour l'export A4 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <!-- OpenCV (Moteur IA) -->
-    <script>
-        window.cvReady = false;
-        var Module = {
-            onRuntimeInitialized: function() {
-                window.cvReady = true;
-                const btn = document.getElementById('btn-auto-crop');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7 21L14.9 3H17L9.1 21H7Z" opacity="0.3"/><path d="M11.5 6.5L10 3L8.5 6.5L5 8L8.5 9.5L10 13L11.5 9.5L15 8L11.5 6.5ZM19 14.5L17.5 11L16 14.5L12.5 16L16 17.5L17.5 21L19 17.5L22.5 16L19 14.5Z"/></svg> Cadrage Auto`;
-                }
-            }
-        };
-    </script>
-    <script async src="https://docs.opencv.org/4.8.0/opencv.js"></script>
 
     <style>
         :root {
-            /* Charte Graphique CHU */
-            --primary: #009ce0; 
-            --primary-hover: #007eb5;
+            --primary: #0056b3;
+            --primary-hover: #004085;
             --success: #28a745;
             --success-hover: #218838;
-            --bg: #f4f7fa;
+            --bg: #f4f6f9;
             --panel: #ffffff;
-            --border: #dce1e6;
-            --text-dark: #1a252f;
+            --border: #ced4da;
+            --text-dark: #212529;
             --text-muted: #6c757d;
         }
         * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text-dark);
             margin: 0;
@@ -53,100 +36,377 @@
             min-height: 100vh;
         }
         
+        /* En-tête */
         .header { text-align: center; margin-bottom: 1.5rem; width: 100%; }
-        .header h2 { margin: 0 0 0.5rem 0; font-size: 1.8rem; font-weight: 900; color: var(--primary); }
+        .header h2 { margin: 0 0 0.5rem 0; font-size: 1.6rem; color: #1a252f; }
         .badge-secu { 
-            display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 700; font-size: 0.85rem; 
-            background: #e8f5e9; padding: 6px 14px; border-radius: 20px; border: 1px solid #c8e6c9;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--success); 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            background: #e8f5e9;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #c8e6c9;
         }
 
+        /* Layout Principal à 3 Colonnes */
         .main-layout {
-            display: grid; grid-template-columns: 1fr 110px 1fr; gap: 1.5rem; width: 100%; max-width: 1500px; flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 110px 1fr;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1500px;
+            align-items: flex-start;
+            flex-grow: 1;
         }
         
         .panel {
-            background: var(--panel); padding: 1.5rem; border-radius: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 2px solid var(--border);
-            display: flex; flex-direction: column; height: 100%; min-height: 700px;
+            background: var(--panel);
+            padding: 1.25rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 700px;
         }
 
-        .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f2f5; }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f0f2f5;
+        }
         .step-number {
-            background-color: #eef4fc; color: var(--primary); width: 32px; height: 32px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; flex-shrink: 0;
+            background-color: var(--primary);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            flex-shrink: 0;
         }
-        .step-title { font-size: 1.15rem; font-weight: 800; color: #2c3e50; margin: 0; }
-
-        /* Zones d'alerte */
-        #source-alert-banner {
-            display: none; padding: 10px 12px; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; font-weight: 700; line-height: 1.4; text-align: center;
+        .step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
         }
-        #source-alert-banner.alert-danger { background-color: #ffeef0; color: #d62828; border: 1px solid #ffc2c2; }
-        #source-alert-banner.alert-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
-        #source-alert-banner.alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
 
-        /* Zone de travail (Canvas) */
+        /* Inputs Métadonnées (Étape 4) */
+        .meta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-top: auto;
+            margin-bottom: 10px;
+        }
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .input-field label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+        }
+        .input-field input {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 0.88rem;
+            outline: none;
+            width: 100%;
+        }
+        .input-field input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0,86,179,0.15);
+        }
+
+        /* Zone Drop & Work (Panneau 1) */
         #drop-zone {
-            border: 2px dashed var(--primary); border-radius: 12px; height: 380px; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; cursor: pointer; background-color: #f8f9fa; margin: auto 0;
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            height: 380px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            transition: all 0.2s ease;
+            margin: auto 0;
         }
+        #drop-zone:hover {
+            background-color: #eef4fc;
+            border-color: var(--primary-hover);
+        }
+        
         #workspace { display: none; flex-direction: column; height: 100%; }
         
         .crop-wrapper {
-            position: relative; width: 100%; height: 480px; background-color: #1a1a1a; margin-bottom: 1rem;
-            border-radius: 10px; display: flex; justify-content: center; align-items: center; overflow: hidden;
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background-color: #e9ecef;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--border);
         }
-        #source-canvas { position: absolute; max-width: 100%; max-height: 100%; }
+        
+        #source-canvas {
+            position: absolute;
+            max-width: 100%;
+            max-height: 100%;
+        }
 
-        /* Colonne Centrale */
-        .transfer-column { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; margin: auto 0; }
+        /* Colonne Centrale : Bouton Étape 2 */
+        .transfer-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-align: center;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
         .btn-transfer {
-            background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; border: none; border-radius: 50px;
-            width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 156, 224, 0.35); transition: transform 0.2s;
+            background: linear-gradient(135deg, var(--primary), #003d82);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 86, 179, 0.35);
+            transition: all 0.25s ease;
         }
-        .btn-transfer:hover { transform: scale(1.05); }
-        .btn-transfer svg { width: 34px; height: 34px; fill: white; }
-        .transfer-label { font-size: 0.85rem; font-weight: 800; color: var(--primary); text-transform: uppercase; text-align: center; }
+        .btn-transfer:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(0, 86, 179, 0.5);
+            background: linear-gradient(135deg, #0062cc, #002b5c);
+        }
+        .btn-transfer:active { transform: scale(0.96); }
+        .btn-transfer svg { width: 32px; height: 32px; fill: white; }
 
-        /* Aperçu */
+        .transfer-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        /* Aperçu & Zoom */
         .preview-wrapper {
-            width: 100%; height: 280px; background: #e9ecef; overflow: auto; border-radius: 10px; border: 2px solid var(--border); margin-bottom: 1rem;
+            width: 100%; 
+            height: 280px; 
+            background: #e9ecef;
+            overflow: auto;
+            border-radius: 6px; 
+            border: 1px solid var(--border);
+            position: relative;
+            margin-bottom: 0.75rem;
         }
-        #result-canvas { display: block; margin: 0 auto; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background-color: white; }
+        #result-canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background-color: white;
+            transition: width 0.1s ease;
+        }
 
-        /* Boutons et UI */
-        .controls-row { display: flex; gap: 10px; margin-top: auto; flex-wrap: wrap; }
+        /* Queue Multi-Pages (Vignettes) */
+        .page-queue-container {
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 0.75rem;
+        }
+        .queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .queue-thumbnails {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 6px 2px;
+            min-height: 75px;
+            align-items: center;
+        }
+        .thumb-item {
+            position: relative;
+            flex-shrink: 0;
+            width: 50px;
+            height: 65px;
+            border: 2px solid var(--primary);
+            border-radius: 5px;
+            overflow: hidden;
+            background: white;
+            cursor: grab;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .thumb-item:active { cursor: grabbing; }
+        .thumb-item.dragging { opacity: 0.4; transform: scale(0.95); }
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        .thumb-item .thumb-del {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(220,53,69,0.9);
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .thumb-item .thumb-badge {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        /* Indicateurs Qualité */
+        .qc-bar {
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: #f8f9fa; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            border: 1px solid var(--border);
+            margin-bottom: 0.75rem; 
+            font-size: 0.82rem; 
+            font-weight: 600;
+        }
+        .qc-status { 
+            padding: 3px 8px; 
+            border-radius: 12px; 
+            color: white; 
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .qc-optimal { background-color: #28a745; }
+        .qc-warning { background-color: #fd7e14; }
+        .qc-danger { background-color: #dc3545; }
+
+        /* Banner d'alerte image source */
+        #source-alert-banner {
+            display: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+        #source-alert-banner.alert-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        #source-alert-banner.alert-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+        #source-alert-banner.alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+
+        /* Controls */
+        .controls-row { display: flex; gap: 8px; margin-top: auto; }
+        .toolbar-zoom { 
+            display: flex; gap: 6px; align-items: center; 
+            justify-content: center; margin-bottom: 6px; 
+        }
+        
         button {
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--primary); color: white;
-            border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background-color: var(--primary); 
+            color: white; 
+            border: none;
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            font-size: 0.85rem;
+            cursor: pointer; 
+            flex: 1;
+            transition: background 0.2s;
         }
         button:hover { background-color: var(--primary-hover); }
         button.secondary { background-color: #6c757d; }
-        button.magic { background-color: white; color: var(--primary); border: 2px solid var(--primary); }
-        button.magic:disabled { opacity: 0.5; cursor: not-allowed; }
-        button.success { background-color: var(--success); font-size: 1rem; padding: 14px; }
-        button.icon-btn-compact { flex: 0; min-width: 42px; height: 42px; padding: 0; }
-        button svg { width: 18px; height: 18px; fill: currentColor; }
-        
-        /* Queue Multi-pages */
-        .page-queue-container { background: #f8f9fa; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 1rem; }
-        .queue-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 800; margin-bottom: 8px; }
-        .queue-thumbnails { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; min-height: 60px; }
-        .thumb-item {
-            position: relative; flex-shrink: 0; width: 45px; height: 60px; border: 2px solid var(--primary); border-radius: 6px;
-            overflow: hidden; background: white; cursor: grab;
+        button.secondary:hover { background-color: #5a6268; }
+        button.success { 
+            background-color: var(--success); 
+            font-size: 0.95rem;
+            padding: 10px 14px;
         }
-        .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
-        .thumb-del { position: absolute; top: 2px; right: 2px; background: #dc3545; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; }
-
-        /* Métadonnées */
-        .meta-group { display: flex; flex-direction: column; gap: 10px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-top: auto; margin-bottom: 12px; }
-        .input-field label { font-size: 0.85rem; font-weight: 800; color: #2c3e50; margin-bottom: 4px; display: block; }
-        .input-field input { padding: 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.95rem; width: 100%; outline: none; }
-        .input-field input:focus { border-color: var(--primary); }
+        button.success:hover { background-color: var(--success-hover); }
+        button.outline { background-color: transparent; border: 1.5px solid #6c757d; color: #6c757d; }
+        button.outline:hover { background-color: #6c757d; color: white; }
+        button.icon-btn-compact { 
+            flex: 0; 
+            padding: 6px 10px; 
+            min-width: 38px;
+            height: 36px;
+        }
+        button.icon-btn-compact svg { width: 20px; height: 20px; fill: white; }
         
-        .qc-bar { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; }
+        button svg { width: 16px; height: 16px; fill: currentColor; }
+        
+        label { font-weight: 600; display: block; margin-bottom: 0.3rem; font-size: 0.85rem; }
+        input[type="range"] { width: 100%; margin-bottom: 0.6rem; cursor: pointer; }
+        
+        .footer { 
+            margin-top: 1.5rem; 
+            color: var(--text-muted); 
+            font-size: 0.85rem; 
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
     </style>
 </head>
 <body>
@@ -154,38 +414,39 @@
     <div class="header">
         <h2>Optimisation des justificatifs</h2>
         <span class="badge-secu">
-            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-            Traitement 100% Local - Données Sécurisées
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+            </svg>
+            Traitement 100% Local (Client-Side) - Confidentialité Garantie
         </span>
     </div>
 
     <div class="main-layout">
         
-        <!-- PANNEAU 1 : IMPORT & RECADRAGE IA -->
+        <!-- ÉTAPE 1 : IMPORTATION ET RECADRAGE -->
         <div class="panel">
             <div class="step-header">
                 <div class="step-number">1</div>
                 <h3 class="step-title">Recadrage & Redressement</h3>
             </div>
 
+            <!-- Zone de Drop -->
             <div id="drop-zone">
-                <svg viewBox="0 0 24 24" style="width: 50px; height: 50px; fill: var(--primary); margin-bottom: 10px;"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                <p style="margin:0; font-weight: 800; font-size: 1.05rem;">Glissez la photo du document ici</p>
-                <p style="margin:5px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">ou cliquez pour parcourir les fichiers</p>
+                <svg viewBox="0 0 24 24" style="width: 44px; height: 44px; fill: var(--primary); margin-bottom: 10px;">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                </svg>
+                <p style="margin:0; font-weight: 700; font-size: 0.95rem; color: #2c3e50;">Glissez la photo du document ici</p>
+                <p style="margin:4px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">ou cliquez pour parcourir les fichiers</p>
                 <input type="file" id="file-input" accept="image/*" style="display: none;">
             </div>
 
             <div id="workspace">
                 <div id="source-alert-banner"></div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <button type="button" class="magic" id="btn-auto-crop" onclick="autoDetectFrame()" disabled>
-                        ⏳ Chargement IA...
-                    </button>
-                    <div class="qc-bar" style="margin: 0; align-items: center; gap: 10px;">
-                        <span>Netteté : <span id="sqc-sharpness-val">--</span></span>
-                        <span>Lum. : <span id="sqc-brightness-val">--</span></span>
-                    </div>
+
+                <div class="qc-bar" style="flex-wrap: wrap; gap: 6px;">
+                    <div>Netteté : <strong id="sqc-sharpness-val">--</strong></div>
+                    <div>Luminosité : <strong id="sqc-brightness-val">--</strong></div>
+                    <span id="sqc-badge" class="qc-status qc-optimal" style="margin-left: auto;">Diagnostic</span>
                 </div>
 
                 <div class="crop-wrapper">
@@ -193,331 +454,766 @@
                 </div>
                 
                 <div class="controls-row">
-                    <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(-90)" title="Pivoter à gauche"><svg viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.52-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.63 3.89l1.41-1.42c-.52-.75-.9-1.6-1.02-2.47zM12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8z"/></svg></button>
-                    <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(90)" title="Pivoter à droite"><svg viewBox="0 0 24 24"><path d="M15.55 5.55L14.14 7c.52.75.9 1.6 1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.92zM12 4c4.42 0 8 3.58 8 8 0 1.57-.46 3.03-1.24 4.26l-1.46-1.46c.45-.83.7-1.79.7-2.8 0-3.31-2.69-6-6-6v3L8 5l4-4v3zm5.19 11.47c-.5.75-.88 1.6-1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.89l-1.37 1.42zM12 20c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 9.74C4.46 10.97 4 12.43 4 14c0 4.42 3.58 8 8 8v-3l4 4-4 4v-3z"/></svg></button>
-                    <button type="button" class="secondary" onclick="resetPoints()">Réinitialiser</button>
-                    <button type="button" class="secondary" onclick="changeSourceImage()" style="background: transparent; border: 2px solid #6c757d; color: #6c757d;">Changer d'image</button>
+                    <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(-90)" title="Pivoter à gauche">
+                        <svg viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.52-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.63 3.89l1.41-1.42c-.52-.75-.9-1.6-1.02-2.47zM12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8z"/></svg>
+                    </button>
+                    <button type="button" class="secondary icon-btn-compact" onclick="rotateSource(90)" title="Pivoter à droite">
+                        <svg viewBox="0 0 24 24"><path d="M15.55 5.55L14.14 7c.52.75.9 1.6 1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.92zM12 4c4.42 0 8 3.58 8 8 0 1.57-.46 3.03-1.24 4.26l-1.46-1.46c.45-.83.7-1.79.7-2.8 0-3.31-2.69-6-6-6v3L8 5l4-4v3zm5.19 11.47c-.5.75-.88 1.6-1.02 2.47h2.02c-.17-1.39-.72-2.73-1.63-3.89l-1.37 1.42zM12 20c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 9.74C4.46 10.97 4 12.43 4 14c0 4.42 3.58 8 8 8v-3l4 4-4 4v-3z"/></svg>
+                    </button>
+                    <button type="button" class="secondary" onclick="resetPoints()">
+                        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                        Réinitialiser coins
+                    </button>
+                    <button type="button" class="outline" onclick="changeSourceImage()" title="Charger une autre photo">
+                        <svg viewBox="0 0 24 24"><path d="M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z"/></svg>
+                        Changer
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- COLONNE CENTRALE : TRANSFERT -->
+        <!-- ÉTAPE 2 : ACTION BOUTON DE TRANSFERT VERS APERÇU -->
         <div class="transfer-column">
             <button type="button" class="btn-transfer" onclick="triggerManualWarp()" title="Générer l'aperçu">
-                <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                </svg>
             </button>
-            <div class="transfer-label">Étape 2<br>Aperçu</div>
+            <div class="transfer-label">
+                Étape 2<br>
+                <span>Envoyer vers aperçu</span>
+            </div>
         </div>
 
-        <!-- PANNEAU 3 : CONTRASTE, MULTI-PAGES & EXPORT -->
+        <!-- ÉTAPE 3 & 4 : CONTRASTE, MULTI-PAGES & EXPORT PDF -->
         <div class="panel">
             <div class="step-header">
                 <div class="step-number">3</div>
-                <h3 class="step-title">Réglage & Exportation</h3>
+                <h3 class="step-title">Réglage Contraste & Multi-pages</h3>
             </div>
 
-            <label for="threshold" style="font-size:0.85rem; font-weight:700;">Ajustement du contraste</label>
-            <input type="range" id="threshold" min="50" max="220" value="130" style="margin-bottom: 15px;" oninput="applyBinarization()">
+            <label for="threshold">Modification du contraste (Suppression des ombres)</label>
+            <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyBinarization()">
+            
+            <div class="qc-bar">
+                <span>Rendu impression :</span>
+                <span id="qc-badge" class="qc-status qc-optimal">En attente</span>
+                <span id="qc-ratio" style="color: var(--text-muted); font-size: 0.8rem;">Encre : --%</span>
+            </div>
+            
+            <div class="toolbar-zoom">
+                <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-right: 8px;">Zoom :</span>
+                <button type="button" class="secondary icon-btn-compact" style="min-width: 30px; height: 28px;" onclick="adjustZoom(-20)">-</button>
+                <span id="zoom-value" style="width: 45px; text-align: center; font-size: 0.85rem; font-weight: bold;">100%</span>
+                <button type="button" class="secondary icon-btn-compact" style="min-width: 30px; height: 28px;" onclick="adjustZoom(20)">+</button>
+            </div>
 
-            <div class="preview-wrapper"><canvas id="result-canvas"></canvas></div>
+            <div class="preview-wrapper" id="preview-wrapper">
+                <canvas id="result-canvas"></canvas>
+            </div>
 
+            <!-- Queue Multi-Pages (Mettre de côté pour merger) -->
             <div class="page-queue-container">
                 <div class="queue-header">
-                    <span>Pages en attente : <strong id="page-count-badge">0</strong></span>
-                    <button type="button" class="success" style="padding: 4px 10px; font-size: 0.8rem; width: auto;" onclick="addCurrentPageAndReset()">+ Ajouter au PDF</button>
+                    <span>Document(s) prêt(s) pour fusion : <strong id="page-count-badge">0 page</strong></span>
+                    <button type="button" class="success" style="padding: 4px 10px; font-size: 0.78rem; flex: none;" onclick="addCurrentPageAndReset()">
+                        + Valider &amp; Ajouter au PDF
+                    </button>
                 </div>
                 <div class="queue-thumbnails" id="queue-thumbnails">
-                    <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Cliquez sur "+ Ajouter" pour lier cette page au document final.</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Valider" pour réorganiser vos pages.</span>
                 </div>
             </div>
 
+            <!-- ÉTAPE 4 : MÉTADONNÉES ET TÉLÉCHARGEMENT -->
             <div class="meta-group">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="input-field">
                         <label for="doc-type">Type de document</label>
                         <input type="text" id="doc-type" placeholder="Nature du document...">
                     </div>
                     <div class="input-field">
-                        <label for="agent-name">Nom de l'agent</label>
+                        <label for="agent-name">Nom Prénom Agent</label>
                         <input type="text" id="agent-name" placeholder="Nom et prénom...">
                     </div>
                 </div>
             </div>
             
-            <button type="button" class="success" onclick="exportPDF()" style="margin-top: auto;">
-                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                4. Télécharger le PDF A4
-            </button>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="success" onclick="exportPDF()">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    4. Télécharger le document (PDF A4)
+                </button>
+            </div>
         </div>
 
+    </div>
+
+    <div class="footer">
+        Application développée par P.NICOLAS
     </div>
 
     <script>
         let rawImage = new Image();
         let corners = [];
-        let activePoint = -1; let activeEdge = -1;
-        let dragStartPos = null; let dragStartCorners = null;
+        let activePoint = -1;
+        let activeEdge = -1;
+        let dragStartPos = null;
+        let dragStartCorners = null;
+
+        let currentZoom = 100;
         let unbinarizedCanvas = document.createElement('canvas');
-        let pdfPageQueue = [];
+        let pdfPageQueue = []; // File d'attente multi-pages
 
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const workspace = document.getElementById('workspace');
         const sourceCanvas = document.getElementById('source-canvas');
         const sCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
+        
         const resultCanvas = document.getElementById('result-canvas');
         const rCtx = resultCanvas.getContext('2d', { willReadFrequently: true });
+        
+        const qcBadge = document.getElementById('qc-badge');
+        const qcRatio = document.getElementById('qc-ratio');
+        const zoomValue = document.getElementById('zoom-value');
 
-        // --- 1. IMPORT & IA OpenCV ---
+        const sqcSharpnessVal = document.getElementById('sqc-sharpness-val');
+        const sqcBrightnessVal = document.getElementById('sqc-brightness-val');
+        const sqcBadge = document.getElementById('sqc-badge');
+        const sourceAlertBanner = document.getElementById('source-alert-banner');
+
+        // Initialisation à vide des métadonnées
+        document.getElementById('doc-type').value = "";
+        document.getElementById('agent-name').value = "";
+
+        // --- 1. DRAG & DROP & IMPORT ---
         dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => e.preventDefault());
-        dropZone.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]); });
-        fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) loadFile(e.target.files[0]); });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) loadFile(e.target.files[0]);
+        });
 
         function loadFile(file) {
             if (!file.type.startsWith('image/')) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 rawImage.onload = () => {
-                    dropZone.style.display = 'none'; workspace.style.display = 'flex';
-                    setupSourceCanvas(); analyzeSourceImage(); resetPoints();
+                    dropZone.style.display = 'none';
+                    workspace.style.display = 'flex';
+                    setupSourceCanvas();
+                    analyzeSourceImage();
+                    resetPoints(false);
                 };
                 rawImage.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function changeSourceImage() { fileInput.value = ''; fileInput.click(); }
-
-        function analyzeSourceImage() {
-            const c = document.createElement('canvas'); const ctx = c.getContext('2d');
-            c.width = 400; c.height = 400 * (rawImage.height / rawImage.width);
-            ctx.drawImage(rawImage, 0, 0, c.width, c.height);
-            const d = ctx.getImageData(0,0,c.width,c.height).data;
-            let sumLum = 0;
-            for(let i=0; i<d.length; i+=4) sumLum += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-            document.getElementById('sqc-brightness-val').textContent = Math.round((sumLum/(c.width*c.height)/255)*100) + '%';
-            document.getElementById('sqc-sharpness-val').textContent = 'Ok'; // Simplifié pour perf
+        function changeSourceImage() {
+            fileInput.value = '';
+            fileInput.click();
         }
 
-        function autoDetectFrame() {
-            if (!window.cvReady) return;
-            let src, gray, edges, contours, hierarchy, bestContour;
-            try {
-                let scale = Math.max(rawImage.width / 800, rawImage.height / 800);
-                if (scale < 1) scale = 1;
-                let rw = Math.round(rawImage.width / scale); let rh = Math.round(rawImage.height / scale);
-                
-                let tmpCanvas = document.createElement('canvas'); tmpCanvas.width = rw; tmpCanvas.height = rh;
-                tmpCanvas.getContext('2d').drawImage(rawImage, 0, 0, rw, rh);
-                
-                src = cv.imread(tmpCanvas); gray = new cv.Mat(); edges = new cv.Mat();
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-                cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-                cv.Canny(gray, edges, 50, 150);
-                
-                let M = cv.Mat.ones(5, 5, cv.CV_8U);
-                cv.dilate(edges, edges, M, new cv.Point(-1, -1), 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
-                M.delete();
+        // --- CONTROLE QUALITÉ SOURCE ---
+        function analyzeSourceImage() {
+            const checkCanvas = document.createElement('canvas');
+            const maxDim = 600;
+            let w = rawImage.width;
+            let h = rawImage.height;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                else { w = Math.round((w * maxDim) / h); h = maxDim; }
+            }
+            checkCanvas.width = w;
+            checkCanvas.height = h;
+            const cCtx = checkCanvas.getContext('2d', { willReadFrequently: true });
+            cCtx.drawImage(rawImage, 0, 0, w, h);
 
-                contours = new cv.MatVector(); hierarchy = new cv.Mat();
-                cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-                
-                let maxArea = 0;
-                for (let i = 0; i < contours.size(); ++i) {
-                    let cnt = contours.get(i); let area = cv.contourArea(cnt);
-                    if (area > (rw * rh * 0.15)) {
-                        let approx = new cv.Mat();
-                        cv.approxPolyDP(cnt, approx, 0.04 * cv.arcLength(cnt, true), true);
-                        if (approx.rows === 4 && area > maxArea) {
-                            maxArea = area; if (bestContour) bestContour.delete(); bestContour = approx.clone();
-                        }
-                        approx.delete();
-                    }
+            const imageData = cCtx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+
+            const gray = new Float32Array(w * h);
+            let sumLuminance = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                gray[i / 4] = lum;
+                sumLuminance += lum;
+            }
+
+            const avgBrightness = sumLuminance / (w * h);
+
+            let laplacianSum = 0;
+            let count = 0;
+            const laplacianValues = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = y * w + x;
+                    const lap = Math.abs(
+                        4 * gray[idx] -
+                        gray[idx - 1] - gray[idx + 1] -
+                        gray[idx - w] - gray[idx + w]
+                    );
+                    laplacianValues.push(lap);
+                    laplacianSum += lap;
+                    count++;
                 }
-                if (bestContour) {
-                    let pts = [];
-                    for (let i = 0; i < 4; i++) pts.push({ x: bestContour.data32S[i * 2] * scale, y: bestContour.data32S[i * 2 + 1] * scale });
-                    pts.sort((a,b) => a.y - b.y);
-                    let top = [pts[0], pts[1]].sort((a,b) => a.x - b.x);
-                    let bottom = [pts[2], pts[3]].sort((a,b) => b.x - a.x);
-                    corners = [top[0], top[1], bottom[0], bottom[1]];
-                    drawSource();
-                } else { alert("Cadrage auto impossible. Veuillez ajuster manuellement."); }
-            } catch (e) { console.error(e); } 
-            finally {
-                if(src) src.delete(); if(gray) gray.delete(); if(edges) edges.delete();
-                if(contours) contours.delete(); if(hierarchy) hierarchy.delete(); if(bestContour) bestContour.delete();
+            }
+
+            const meanLap = laplacianSum / count;
+            let varianceSum = 0;
+            for (let i = 0; i < laplacianValues.length; i++) {
+                varianceSum += Math.pow(laplacianValues[i] - meanLap, 2);
+            }
+            const blurScore = varianceSum / count;
+
+            displaySourceQualityReport(blurScore, avgBrightness);
+        }
+
+        function displaySourceQualityReport(blurScore, brightness) {
+            sqcSharpnessVal.textContent = Math.round(blurScore);
+            sqcBrightnessVal.textContent = `${Math.round((brightness / 255) * 100)}%`;
+
+            const isTooBlurry = blurScore < 100;
+            const isSlightlyBlurry = blurScore >= 100 && blurScore < 250;
+            const isDark = brightness < 70;
+            const isVeryDark = brightness < 45;
+
+            sqcBadge.className = 'qc-status';
+            sourceAlertBanner.className = '';
+
+            if (isTooBlurry || isVeryDark) {
+                sqcBadge.textContent = 'Photo inexploitable';
+                sqcBadge.classList.add('qc-danger');
+                sourceAlertBanner.classList.add('alert-danger');
+                sourceAlertBanner.style.display = 'block';
+
+                let cause = [];
+                if (isTooBlurry) cause.push("Image trop floue (manque de mise au point/bougé)");
+                if (isVeryDark) cause.push("Éclairage insuffisant / Sombre");
+
+                sourceAlertBanner.innerHTML = `⚠️ <strong>Attention :</strong> ${cause.join(' et ')}. Demander une nouvelle photo à l'agent.`;
+            } else if (isSlightlyBlurry || isDark) {
+                sqcBadge.textContent = 'Qualité moyenne';
+                sqcBadge.classList.add('qc-warning');
+                sourceAlertBanner.classList.add('alert-warning');
+                sourceAlertBanner.style.display = 'block';
+
+                let hint = [];
+                if (isSlightlyBlurry) hint.push("Légèrement floue");
+                if (isDark) hint.push("Lumière faible");
+
+                sourceAlertBanner.innerHTML = `⚠️ <strong>Avertissement :</strong> Photo ${hint.join(' & ')}. Ajustez finement le contraste à l'étape 3.`;
+            } else {
+                sqcBadge.textContent = 'Excellente photo';
+                sqcBadge.classList.add('qc-optimal');
+                sourceAlertBanner.classList.add('alert-success');
+                sourceAlertBanner.style.display = 'block';
+                sourceAlertBanner.innerHTML = `✓ <strong>Photo conforme :</strong> Bonne netteté et luminosité optimale.`;
             }
         }
 
-        // --- 2. LOGIQUE MANUELLE DE RECADRAGE ---
-        function setupSourceCanvas() { sourceCanvas.width = rawImage.width; sourceCanvas.height = rawImage.height; drawSource(); }
-        function resetPoints() {
-            const w = sourceCanvas.width; const h = sourceCanvas.height; const pX = w * 0.05; const pY = h * 0.05;
-            corners = [{x: pX, y: pY}, {x: w-pX, y: pY}, {x: w-pX, y: h-pY}, {x: pX, y: h-pY}]; drawSource();
+        // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET CURSEURS ---
+        function setupSourceCanvas() {
+            sourceCanvas.width = rawImage.width;
+            sourceCanvas.height = rawImage.height;
+            drawSource();
+        }
+
+        function resetPoints(autoWarp = false) {
+            const w = sourceCanvas.width;
+            const h = sourceCanvas.height;
+            const padX = w * 0.05;
+            const padY = h * 0.05;
+
+            corners = [
+                { x: padX, y: padY },         // Haut-Gauche
+                { x: w - padX, y: padY },     // Haut-Droit
+                { x: w - padX, y: h - padY }, // Bas-Droit
+                { x: padX, y: h - padY }      // Bas-Gauche
+            ];
+            drawSource();
+            if (autoWarp) triggerManualWarp();
         }
 
         function drawSource() {
-            sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height); sCtx.drawImage(rawImage, 0, 0);
-            sCtx.beginPath(); sCtx.moveTo(corners[0].x, corners[0].y);
-            for (let i=1; i<4; i++) sCtx.lineTo(corners[i].x, corners[i].y);
-            sCtx.closePath(); sCtx.fillStyle = 'rgba(0, 156, 224, 0.2)'; sCtx.fill();
-            sCtx.strokeStyle = 'var(--primary)'; sCtx.lineWidth = Math.max(3, sourceCanvas.width / 250); sCtx.stroke();
+            sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+            sCtx.drawImage(rawImage, 0, 0);
 
-            const eRad = Math.max(8, sourceCanvas.width/100);
-            for(let i=0; i<4; i++) {
-                sCtx.beginPath(); sCtx.arc((corners[i].x+corners[(i+1)%4].x)/2, (corners[i].y+corners[(i+1)%4].y)/2, eRad, 0, Math.PI*2);
-                sCtx.fillStyle = 'var(--primary)'; sCtx.fill(); sCtx.strokeStyle = 'white'; sCtx.lineWidth = eRad/3; sCtx.stroke();
+            sCtx.beginPath();
+            sCtx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < 4; i++) {
+                sCtx.lineTo(corners[i].x, corners[i].y);
+            }
+            sCtx.closePath();
+            sCtx.fillStyle = 'rgba(0, 86, 179, 0.18)';
+            sCtx.fill();
+            sCtx.strokeStyle = '#0056b3';
+            sCtx.lineWidth = Math.max(3, sourceCanvas.width / 300);
+            sCtx.stroke();
+
+            const edgeRadius = Math.max(7, sourceCanvas.width / 120);
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (i + 1) % 4;
+                const midX = (corners[i].x + corners[nextIdx].x) / 2;
+                const midY = (corners[i].y + corners[nextIdx].y) / 2;
+
+                sCtx.beginPath();
+                sCtx.arc(midX, midY, edgeRadius, 0, Math.PI * 2);
+                sCtx.fillStyle = '#0056b3';
+                sCtx.fill();
+                sCtx.strokeStyle = '#ffffff';
+                sCtx.lineWidth = edgeRadius / 3;
+                sCtx.stroke();
             }
 
-            const cRad = Math.max(12, sourceCanvas.width/60);
-            corners.forEach(pt => {
-                sCtx.beginPath(); sCtx.arc(pt.x, pt.y, cRad, 0, Math.PI*2);
-                sCtx.fillStyle = 'white'; sCtx.fill(); sCtx.strokeStyle = 'var(--primary)'; sCtx.lineWidth = cRad/3; sCtx.stroke();
+            const radius = Math.max(10, sourceCanvas.width / 80);
+            corners.forEach((pt) => {
+                sCtx.beginPath();
+                sCtx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+                sCtx.fillStyle = '#ffffff';
+                sCtx.fill();
+                sCtx.strokeStyle = '#0056b3';
+                sCtx.lineWidth = radius / 3;
+                sCtx.stroke();
             });
         }
 
         function getCanvasCoords(e) {
             const rect = sourceCanvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: (clientX - rect.left) * (sourceCanvas.width / rect.width), y: (clientY - rect.top) * (sourceCanvas.height / rect.height) };
+            const scaleX = sourceCanvas.width / rect.width;
+            const scaleY = sourceCanvas.height / rect.height;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function distanceToSegment(pt, p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq === 0) return Math.hypot(pt.x - p1.x, pt.y - p1.y);
+            let t = ((pt.x - p1.x) * dx + (pt.y - p1.y) * dy) / lenSq;
+            t = Math.max(0, Math.min(1, t));
+            const projX = p1.x + t * dx;
+            const projY = p1.y + t * dy;
+            return Math.hypot(pt.x - projX, pt.y - projY);
         }
 
         sourceCanvas.addEventListener('mousemove', (e) => {
             if (activePoint !== -1 || activeEdge !== -1) return;
-            const pos = getCanvasCoords(e); const pR = sourceCanvas.width/30;
-            if (corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pR) !== -1) { sourceCanvas.style.cursor = 'crosshair'; return; }
-            for (let i=0; i<4; i++) {
-                if (Math.hypot(pos.x - (corners[i].x+corners[(i+1)%4].x)/2, pos.y - (corners[i].y+corners[(i+1)%4].y)/2) < pR) {
-                    sourceCanvas.style.cursor = (i===0 || i===2) ? 'ns-resize' : 'ew-resize'; return;
+            
+            const pos = getCanvasCoords(e);
+            const pointRadius = Math.max(30, sourceCanvas.width / 35);
+            const hoverCorner = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pointRadius);
+
+            if (hoverCorner !== -1) {
+                sourceCanvas.style.cursor = 'crosshair';
+                return;
+            }
+
+            const edgeThreshold = Math.max(25, sourceCanvas.width / 40);
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (i + 1) % 4;
+                if (distanceToSegment(pos, corners[i], corners[nextIdx]) < edgeThreshold) {
+                    if (i === 0 || i === 2) {
+                        sourceCanvas.style.cursor = 'ns-resize';
+                    } else {
+                        sourceCanvas.style.cursor = 'ew-resize';
+                    }
+                    return;
                 }
             }
+
             sourceCanvas.style.cursor = 'default';
         });
 
-        sourceCanvas.addEventListener('mousedown', (e) => {
-            const pos = getCanvasCoords(e); const pR = sourceCanvas.width/30;
-            activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pR);
-            if (activePoint !== -1) return;
-            for (let i=0; i<4; i++) {
-                if (Math.hypot(pos.x - (corners[i].x+corners[(i+1)%4].x)/2, pos.y - (corners[i].y+corners[(i+1)%4].y)/2) < pR) {
-                    activeEdge = i; dragStartPos = pos; dragStartCorners = JSON.parse(JSON.stringify(corners)); return;
+        function handleStart(e) {
+            const pos = getCanvasCoords(e);
+            const pointRadius = Math.max(30, sourceCanvas.width / 35);
+            
+            activePoint = corners.findIndex(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < pointRadius);
+            
+            if (activePoint !== -1) {
+                activeEdge = -1;
+                return;
+            }
+
+            const edgeThreshold = Math.max(25, sourceCanvas.width / 40);
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (i + 1) % 4;
+                const dist = distanceToSegment(pos, corners[i], corners[nextIdx]);
+                if (dist < edgeThreshold) {
+                    activeEdge = i;
+                    dragStartPos = pos;
+                    dragStartCorners = JSON.parse(JSON.stringify(corners));
+                    return;
                 }
             }
-        });
-        
-        window.addEventListener('mousemove', (e) => {
-            if (activePoint === -1 && activeEdge === -1) return;
-            const pos = getCanvasCoords(e);
-            if (activePoint !== -1) {
-                corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x)); corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
-            } else if (activeEdge !== -1) {
-                const idx2 = (activeEdge + 1) % 4; const dX = pos.x - dragStartPos.x; const dY = pos.y - dragStartPos.y;
-                corners[activeEdge].x = dragStartCorners[activeEdge].x + dX; corners[activeEdge].y = dragStartCorners[activeEdge].y + dY;
-                corners[idx2].x = dragStartCorners[idx2].x + dX; corners[idx2].y = dragStartCorners[idx2].y + dY;
-            }
-            drawSource();
-        });
-        window.addEventListener('mouseup', () => { activePoint = -1; activeEdge = -1; });
 
-        function rotateSource(deg) {
-            const tmp = document.createElement('canvas'); const ctx = tmp.getContext('2d');
-            if(Math.abs(deg)===90){ tmp.width=rawImage.height; tmp.height=rawImage.width; } else { tmp.width=rawImage.width; tmp.height=rawImage.height; }
-            ctx.translate(tmp.width/2, tmp.height/2); ctx.rotate(deg*Math.PI/180); ctx.drawImage(rawImage, -rawImage.width/2, -rawImage.height/2);
-            rawImage = new Image(); rawImage.onload = () => { setupSourceCanvas(); resetPoints(); }; rawImage.src = tmp.toDataURL();
+            activePoint = -1;
+            activeEdge = -1;
         }
 
-        // --- 3. REDRESSEMENT & BINARISATION ---
+        function handleMove(e) {
+            if (activePoint === -1 && activeEdge === -1) return;
+            e.preventDefault();
+            const pos = getCanvasCoords(e);
+
+            if (activePoint !== -1) {
+                corners[activePoint].x = Math.max(0, Math.min(sourceCanvas.width, pos.x));
+                corners[activePoint].y = Math.max(0, Math.min(sourceCanvas.height, pos.y));
+            } else if (activeEdge !== -1) {
+                const idx1 = activeEdge;
+                const idx2 = (activeEdge + 1) % 4;
+                const deltaX = pos.x - dragStartPos.x;
+                const deltaY = pos.y - dragStartPos.y;
+
+                corners[idx1].x = Math.max(0, Math.min(sourceCanvas.width, dragStartCorners[idx1].x + deltaX));
+                corners[idx1].y = Math.max(0, Math.min(sourceCanvas.height, dragStartCorners[idx1].y + deltaY));
+                
+                corners[idx2].x = Math.max(0, Math.min(sourceCanvas.width, dragStartCorners[idx2].x + deltaX));
+                corners[idx2].y = Math.max(0, Math.min(sourceCanvas.height, dragStartCorners[idx2].y + deltaY));
+            }
+
+            drawSource();
+        }
+
+        function handleEnd() {
+            activePoint = -1;
+            activeEdge = -1;
+            dragStartPos = null;
+            dragStartCorners = null;
+        }
+
+        sourceCanvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        sourceCanvas.addEventListener('touchstart', handleStart);
+        window.addEventListener('touchmove', handleMove);
+        window.addEventListener('touchend', handleEnd);
+
+        function rotateSource(degrees) {
+            const tempCanvas = document.createElement('canvas');
+            const tCtx = tempCanvas.getContext('2d');
+            
+            if (Math.abs(degrees) === 90) {
+                tempCanvas.width = rawImage.height;
+                tempCanvas.height = rawImage.width;
+            } else {
+                tempCanvas.width = rawImage.width;
+                tempCanvas.height = rawImage.height;
+            }
+
+            tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tCtx.rotate((degrees * Math.PI) / 180);
+            tCtx.drawImage(rawImage, -rawImage.width / 2, -rawImage.height / 2);
+
+            rawImage = new Image();
+            rawImage.onload = () => {
+                setupSourceCanvas();
+                analyzeSourceImage();
+                resetPoints(false);
+            };
+            rawImage.src = tempCanvas.toDataURL();
+        }
+
+        // --- 3. APERÇU ET REDRESSEMENT ---
         function triggerManualWarp() {
-            if (!rawImage.src) return;
-            const targetW = Math.round(Math.max(Math.hypot(corners[1].x-corners[0].x, corners[1].y-corners[0].y), Math.hypot(corners[2].x-corners[3].x, corners[2].y-corners[3].y)));
-            const targetH = Math.round(Math.max(Math.hypot(corners[3].x-corners[0].x, corners[3].y-corners[0].y), Math.hypot(corners[2].x-corners[1].x, corners[2].y-corners[1].y)));
+            if (!rawImage.src || sourceCanvas.width === 0) {
+                alert("Veuillez d'abord charger une photo dans le panneau 1.");
+                return;
+            }
 
-            unbinarizedCanvas.width = targetW; unbinarizedCanvas.height = targetH; resultCanvas.width = targetW; resultCanvas.height = targetH;
-            const cCtx = document.createElement('canvas'); cCtx.width = sourceCanvas.width; cCtx.height = sourceCanvas.height; cCtx.getContext('2d').drawImage(rawImage, 0, 0);
+            const topW = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
+            const botW = Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y);
+            const leftH = Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y);
+            const rightH = Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y);
 
-            const uCtx = unbinarizedCanvas.getContext('2d'); const src = cCtx.getContext('2d').getImageData(0,0,cCtx.width,cCtx.height).data;
-            const outImgData = uCtx.createImageData(targetW, targetH); const dst = outImgData.data;
+            const targetW = Math.round(Math.max(topW, botW));
+            const targetH = Math.round(Math.max(leftH, rightH));
+
+            unbinarizedCanvas.width = targetW;
+            unbinarizedCanvas.height = targetH;
+            
+            resultCanvas.width = targetW;
+            resultCanvas.height = targetH;
+
+            const cleanCanvas = document.createElement('canvas');
+            cleanCanvas.width = sourceCanvas.width;
+            cleanCanvas.height = sourceCanvas.height;
+            const cCtx = cleanCanvas.getContext('2d');
+            cCtx.drawImage(rawImage, 0, 0);
+
+            const uCtx = unbinarizedCanvas.getContext('2d');
+            const imgData = cCtx.getImageData(0, 0, cleanCanvas.width, cleanCanvas.height);
+            const outImgData = uCtx.createImageData(targetW, targetH);
+
+            const src = imgData.data;
+            const dst = outImgData.data;
 
             for (let y = 0; y < targetH; y++) {
+                const v = y / targetH;
                 for (let x = 0; x < targetW; x++) {
-                    const u = x / targetW; const v = y / targetH;
-                    const srcX = (1-u)*(1-v)*corners[0].x + u*(1-v)*corners[1].x + u*v*corners[2].x + (1-u)*v*corners[3].x;
-                    const srcY = (1-u)*(1-v)*corners[0].y + u*(1-v)*corners[1].y + u*v*corners[2].y + (1-u)*v*corners[3].y;
-                    const ix = Math.floor(srcX); const iy = Math.floor(srcY);
-                    if (ix>=0 && ix<cCtx.width && iy>=0 && iy<cCtx.height) {
-                        const sIdx = (iy*cCtx.width+ix)*4; const dIdx = (y*targetW+x)*4;
-                        dst[dIdx] = src[sIdx]; dst[dIdx+1] = src[sIdx+1]; dst[dIdx+2] = src[sIdx+2]; dst[dIdx+3] = 255;
+                    const u = x / targetW;
+
+                    const srcX = (1 - u) * (1 - v) * corners[0].x +
+                                 u * (1 - v) * corners[1].x +
+                                 u * v * corners[2].x +
+                                 (1 - u) * v * corners[3].x;
+
+                    const srcY = (1 - u) * (1 - v) * corners[0].y +
+                                 u * (1 - v) * corners[1].y +
+                                 u * v * corners[2].y +
+                                 (1 - u) * v * corners[3].y;
+
+                    const ix = Math.floor(srcX);
+                    const iy = Math.floor(srcY);
+
+                    if (ix >= 0 && ix < cleanCanvas.width && iy >= 0 && iy < cleanCanvas.height) {
+                        const srcIdx = (iy * cleanCanvas.width + ix) * 4;
+                        const dstIdx = (y * targetW + x) * 4;
+
+                        dst[dstIdx] = src[srcIdx];
+                        dst[dstIdx + 1] = src[srcIdx + 1];
+                        dst[dstIdx + 2] = src[srcIdx + 2];
+                        dst[dstIdx + 3] = 255;
                     }
                 }
             }
-            uCtx.putImageData(outImgData, 0, 0); applyBinarization();
+            uCtx.putImageData(outImgData, 0, 0);
+            applyBinarization();
         }
 
+        // --- 4. BINARISATION ---
         function applyBinarization() {
             if (!unbinarizedCanvas.width) return;
-            const t = parseInt(document.getElementById('threshold').value);
-            const imgD = unbinarizedCanvas.getContext('2d').getImageData(0,0,resultCanvas.width,resultCanvas.height);
-            for (let i=0; i<imgD.data.length; i+=4) {
-                const color = (0.299*imgD.data[i] + 0.587*imgD.data[i+1] + 0.114*imgD.data[i+2]) >= t ? 255 : 0;
-                imgD.data[i] = imgD.data[i+1] = imgD.data[i+2] = color;
+
+            const threshold = parseInt(document.getElementById('threshold').value);
+            const uCtx = unbinarizedCanvas.getContext('2d');
+            const imageData = uCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
+            const data = imageData.data;
+
+            let blackPixels = 0;
+            let totalPixels = resultCanvas.width * resultCanvas.height;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const luminance = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                const color = luminance >= threshold ? 255 : 0;
+                
+                if (color === 0) blackPixels++;
+                data[i] = data[i+1] = data[i+2] = color;
             }
-            rCtx.putImageData(imgD, 0, 0);
+
+            rCtx.putImageData(imageData, 0, 0);
+            updateQualityControl(blackPixels, totalPixels);
         }
 
-        // --- 4. EXPORT & GESTION MULTI-PAGES ---
+        function updateQualityControl(blackPixels, totalPixels) {
+            const inkPercentage = ((blackPixels / totalPixels) * 100).toFixed(1);
+            qcRatio.textContent = `Encre : ${inkPercentage}%`;
+            
+            qcBadge.className = 'qc-status';
+            
+            if (inkPercentage < 2) {
+                qcBadge.textContent = 'Trop clair / Illisible';
+                qcBadge.classList.add('qc-danger');
+            } else if (inkPercentage >= 2 && inkPercentage <= 15) {
+                qcBadge.textContent = 'Lisibilité Optimale';
+                qcBadge.classList.add('qc-optimal');
+            } else {
+                qcBadge.textContent = 'Ombres / Surconsommation';
+                qcBadge.classList.add('qc-warning');
+            }
+        }
+
+        // --- 5. FUSION MULTI-PAGES & REORDONNEMENT ---
         function addCurrentPageAndReset() {
-            if (!resultCanvas.width) return;
-            pdfPageQueue.push({ dataUrl: resultCanvas.toDataURL('image/jpeg', 0.95), width: resultCanvas.width, height: resultCanvas.height });
-            renderQueueThumbnails(); clearCurrentWorkspace();
+            if (!resultCanvas.width) {
+                alert("Veuillez d'abord générer un aperçu de document.");
+                return;
+            }
+
+            const imgDataUrl = resultCanvas.toDataURL('image/jpeg', 0.92);
+            pdfPageQueue.push({
+                dataUrl: imgDataUrl,
+                width: resultCanvas.width,
+                height: resultCanvas.height
+            });
+
+            renderQueueThumbnails();
+            clearCurrentWorkspace();
         }
 
         function clearCurrentWorkspace() {
-            workspace.style.display = 'none'; dropZone.style.display = 'flex'; fileInput.value = ''; rawImage = new Image();
-            sCtx.clearRect(0,0,sourceCanvas.width,sourceCanvas.height); rCtx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
+            workspace.style.display = 'none';
+            dropZone.style.display = 'flex';
+            fileInput.value = '';
+            rawImage = new Image();
+            
+            sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+            rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
             unbinarizedCanvas = document.createElement('canvas');
+            
+            sourceAlertBanner.style.display = 'none';
+            qcBadge.textContent = 'En attente';
+            qcBadge.className = 'qc-status qc-warning';
+            qcRatio.textContent = 'Encre : --%';
         }
 
-        function removePageFromQueue(idx) { pdfPageQueue.splice(idx, 1); renderQueueThumbnails(); }
+        function removePageFromQueue(index) {
+            pdfPageQueue.splice(index, 1);
+            renderQueueThumbnails();
+        }
 
-        let dragIdx = null;
+        let draggedQueueIndex = null;
+
         function renderQueueThumbnails() {
             const container = document.getElementById('queue-thumbnails');
-            document.getElementById('page-count-badge').textContent = pdfPageQueue.length;
-            container.innerHTML = pdfPageQueue.length === 0 ? `<span style="font-size:0.75rem;color:var(--text-muted);">Aucune page mise de côté.</span>` : '';
+            const badge = document.getElementById('page-count-badge');
+            
+            badge.textContent = `${pdfPageQueue.length} page${pdfPageQueue.length > 1 ? 's' : ''}`;
+            container.innerHTML = '';
+
+            if (pdfPageQueue.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aucune page mise de côté. Cliquez sur "+ Valider" pour réorganiser vos pages.</span>`;
+                return;
+            }
+
             pdfPageQueue.forEach((page, idx) => {
-                const thumb = document.createElement('div'); thumb.className = 'thumb-item'; thumb.draggable = true;
-                thumb.innerHTML = `<img src="${page.dataUrl}"><div class="thumb-del" onclick="removePageFromQueue(${idx})">×</div>`;
-                thumb.ondragstart = () => { dragIdx = idx; thumb.style.opacity = '0.5'; };
-                thumb.ondragend = () => { thumb.style.opacity = '1'; dragIdx = null; };
-                thumb.ondragover = (e) => e.preventDefault();
-                thumb.ondrop = (e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== idx) { pdfPageQueue.splice(idx, 0, pdfPageQueue.splice(dragIdx, 1)[0]); renderQueueThumbnails(); } };
+                const thumb = document.createElement('div');
+                thumb.className = 'thumb-item';
+                thumb.draggable = true;
+                thumb.dataset.index = idx;
+                
+                thumb.innerHTML = `
+                    <img src="${page.dataUrl}">
+                    <div class="thumb-badge">P.${idx + 1}</div>
+                    <div class="thumb-del" onclick="event.stopPropagation(); removePageFromQueue(${idx})" title="Supprimer la page">×</div>
+                `;
+
+                thumb.addEventListener('dragstart', (e) => {
+                    draggedQueueIndex = idx;
+                    thumb.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                thumb.addEventListener('dragend', () => {
+                    thumb.classList.remove('dragging');
+                    draggedQueueIndex = null;
+                });
+
+                thumb.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                thumb.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedQueueIndex !== null && draggedQueueIndex !== idx) {
+                        const draggedItem = pdfPageQueue.splice(draggedQueueIndex, 1)[0];
+                        pdfPageQueue.splice(idx, 0, draggedItem);
+                        renderQueueThumbnails();
+                    }
+                });
+
                 container.appendChild(thumb);
             });
         }
 
+        // --- 6. EXPORT PDF & REINIT GLOBALE ---
+        function formatFilename() {
+            let docType = document.getElementById('doc-type').value.trim();
+            let agentName = document.getElementById('agent-name').value.trim();
+            
+            docType = docType ? docType.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Document';
+            agentName = agentName ? agentName.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Anonyme';
+            
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const dateStr = `${day}-${month}-${year}`;
+
+            return `${docType}_${agentName}_${dateStr}.pdf`;
+        }
+
         function exportPDF() {
-            let pages = pdfPageQueue.length > 0 ? pdfPageQueue : (resultCanvas.width ? [{dataUrl: resultCanvas.toDataURL('image/jpeg',0.95), width: resultCanvas.width, height: resultCanvas.height}] : []);
-            if (pages.length === 0) return alert("Veuillez générer un aperçu.");
+            let pagesToExport = [];
 
-            const { jsPDF } = window.jspdf; const pdf = new jsPDF({ format: 'a4' });
-            const pw = pdf.internal.pageSize.getWidth(); const ph = pdf.internal.pageSize.getHeight();
+            if (pdfPageQueue.length > 0) {
+                pagesToExport = pdfPageQueue;
+            } else if (resultCanvas.width > 0) {
+                pagesToExport.push({
+                    dataUrl: resultCanvas.toDataURL('image/jpeg', 0.95),
+                    width: resultCanvas.width,
+                    height: resultCanvas.height
+                });
+            } else {
+                alert("Veuillez d'abord charger un document et générer son aperçu.");
+                return;
+            }
 
-            pages.forEach((p, i) => {
-                if (i > 0) pdf.addPage();
-                let fw = pw; let fh = ph;
-                if ((p.width/p.height) > (pw/ph)) fh = pw / (p.width/p.height); else fw = ph * (p.width/p.height);
-                pdf.addImage(p.dataUrl, 'JPEG', (pw-fw)/2, (ph-fh)/2, fw, fh);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            pagesToExport.forEach((page, index) => {
+                if (index > 0) pdf.addPage();
+
+                const canvasRatio = page.width / page.height;
+                const pdfRatio = pdfWidth / pdfHeight;
+                
+                let finalWidth = pdfWidth; 
+                let finalHeight = pdfHeight;
+
+                if (canvasRatio > pdfRatio) { 
+                    finalHeight = pdfWidth / canvasRatio; 
+                } else { 
+                    finalWidth = pdfHeight * canvasRatio; 
+                }
+
+                const x = (pdfWidth - finalWidth) / 2; 
+                const y = (pdfHeight - finalHeight) / 2;
+
+                pdf.addImage(page.dataUrl, 'JPEG', x, y, finalWidth, finalHeight);
             });
 
-            const dt = document.getElementById('doc-type').value.trim().replace(/[^a-zA-Z0-9_-]/g, '_') || 'Document';
-            const ag = document.getElementById('agent-name').value.trim().replace(/[^a-zA-Z0-9_-]/g, '_') || 'Anonyme';
-            const d = new Date();
-            pdf.save(`${dt}_${ag}_${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}.pdf`);
+            const fileName = formatFilename();
+            pdf.save(fileName);
+
+            // Réinitialisation complète du site après téléchargement
+            resetApp();
+        }
+
+        function adjustZoom(delta) {
+            currentZoom = Math.max(20, Math.min(300, currentZoom + delta));
+            resultCanvas.style.width = currentZoom + '%';
+            zoomValue.textContent = currentZoom + '%';
+        }
+
+        function resetApp() {
+            clearCurrentWorkspace();
+            pdfPageQueue = [];
+            renderQueueThumbnails();
             
-            clearCurrentWorkspace(); pdfPageQueue = []; renderQueueThumbnails();
-            document.getElementById('doc-type').value = ""; document.getElementById('agent-name').value = "";
+            // Remise à zéro des champs métadonnées
+            document.getElementById('doc-type').value = "";
+            document.getElementById('agent-name').value = "";
+            currentZoom = 100;
+            resultCanvas.style.width = '100%';
+            zoomValue.textContent = '100%';
         }
     </script>
 </body>
