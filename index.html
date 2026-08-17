@@ -10,6 +10,18 @@
 
     <!-- jsPDF pour l'export A4 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        window.cvReady = false;
+        var Module = {
+            onRuntimeInitialized: function() {
+                window.cvReady = true;
+                if (typeof window.updateAutoCropButtonState === 'function') {
+                    window.updateAutoCropButtonState();
+                }
+            }
+        };
+    </script>
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js"></script>
 
     <style>
         :root {
@@ -352,6 +364,30 @@
         #source-alert-banner.alert-danger { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
         #source-alert-banner.alert-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
         #source-alert-banner.alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        #auto-crop-banner,
+        #result-alert-banner {
+            display: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+        #auto-crop-banner.alert-info,
+        #result-alert-banner.alert-info { background-color: #eef7ff; color: #005a8d; border: 1px solid #b8def8; }
+        #auto-crop-banner.alert-error,
+        #result-alert-banner.alert-error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        #result-alert-banner.alert-warning { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+        #result-alert-banner.alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        button.magic {
+            background-color: #ffffff;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+        }
+        button.magic:hover {
+            background-color: #eef4fc;
+        }
 
         /* Controls */
         .controls-row { display: flex; gap: 8px; margin-top: auto; }
@@ -448,6 +484,10 @@
                     <div>Luminosité : <strong id="sqc-brightness-val">--</strong></div>
                     <span id="sqc-badge" class="qc-status qc-optimal" style="margin-left: auto;">Diagnostic</span>
                 </div>
+                <button type="button" id="btn-auto-crop" class="magic" onclick="autoDetectFrame()" disabled style="margin-bottom: 8px;">
+                    ⏳ Chargement de l'IA...
+                </button>
+                <div id="auto-crop-banner"></div>
 
                 <div class="crop-wrapper">
                     <canvas id="source-canvas"></canvas>
@@ -492,8 +532,14 @@
                 <h3 class="step-title">Réglage Contraste & Multi-pages</h3>
             </div>
 
-            <label for="threshold">Modification du contraste (Suppression des ombres)</label>
-            <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyBinarization()">
+            <div id="result-alert-banner"></div>
+            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                <button type="button" class="magic" onclick="applyAutoEnhanceIA()">
+                    🪄 Auto-réglage IA
+                </button>
+            </div>
+            <label for="threshold">Réglage manuel du contraste (si nécessaire)</label>
+            <input type="range" id="threshold" min="50" max="220" value="130" oninput="applyBinarizationManual()">
             
             <div class="qc-bar">
                 <span>Rendu impression :</span>
@@ -560,6 +606,8 @@
         let activeEdge = -1;
         let dragStartPos = null;
         let dragStartCorners = null;
+        let isAutoCropRunning = false;
+        let autoCropStatus = 'idle';
 
         let currentZoom = 100;
         let unbinarizedCanvas = document.createElement('canvas');
@@ -582,10 +630,23 @@
         const sqcBrightnessVal = document.getElementById('sqc-brightness-val');
         const sqcBadge = document.getElementById('sqc-badge');
         const sourceAlertBanner = document.getElementById('source-alert-banner');
+        const autoCropBanner = document.getElementById('auto-crop-banner');
+        const resultAlertBanner = document.getElementById('result-alert-banner');
+
+        const AUTO_CROP_ATTEMPTS = [
+            { cannyLow: 30, cannyHigh: 100, delayMs: 0 },
+            { cannyLow: 20, cannyHigh: 90, delayMs: 120 },
+            { cannyLow: 45, cannyHigh: 140, delayMs: 250 }
+        ];
+        const AUTO_CROP_MIN_AREA_RATIO = 0.006;
+        const AUTO_CROP_MIN_EDGE_PX = 14;
+        const AUTO_CROP_HEURISTIC_EDGE_THRESHOLD = 55;
+        const AUTO_CROP_HEURISTIC_MIN_HIT_RATIO = 0.01;
 
         // Initialisation à vide des métadonnées
         document.getElementById('doc-type').value = "";
         document.getElementById('agent-name').value = "";
+        updateAutoCropButtonState();
 
         // --- 1. DRAG & DROP & IMPORT ---
         dropZone.addEventListener('click', () => fileInput.click());
@@ -608,6 +669,8 @@
                     setupSourceCanvas();
                     analyzeSourceImage();
                     resetPoints(false);
+                    hideResultAlert();
+                    autoDetectFrame();
                 };
                 rawImage.src = e.target.result;
             };
@@ -618,6 +681,52 @@
             fileInput.value = '';
             fileInput.click();
         }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function setAutoCropBanner(message, type = 'info') {
+            autoCropBanner.className = `alert-${type}`;
+            autoCropBanner.textContent = message;
+            autoCropBanner.style.display = 'block';
+        }
+
+        function hideAutoCropBanner() {
+            autoCropBanner.style.display = 'none';
+            autoCropBanner.textContent = '';
+            autoCropBanner.className = '';
+        }
+
+        function setResultAlert(message, type) {
+            resultAlertBanner.className = `alert-${type}`;
+            resultAlertBanner.innerHTML = message;
+            resultAlertBanner.style.display = 'block';
+        }
+
+        function hideResultAlert() {
+            resultAlertBanner.style.display = 'none';
+            resultAlertBanner.textContent = '';
+            resultAlertBanner.className = '';
+        }
+
+        function updateAutoCropButtonState() {
+            const btn = document.getElementById('btn-auto-crop');
+            const hasImage = rawImage.naturalWidth > 0 && rawImage.naturalHeight > 0;
+            btn.disabled = !hasImage || isAutoCropRunning;
+            if (isAutoCropRunning) {
+                btn.innerHTML = '⏳ Analyse en cours...';
+            } else if (window.cvReady) {
+                btn.innerHTML = '🪄 Cadrage Automatique';
+            } else {
+                btn.innerHTML = '🪄 Cadrage de secours';
+            }
+        }
+        window.updateAutoCropButtonState = updateAutoCropButtonState;
 
         // --- CONTROLE QUALITÉ SOURCE ---
         function analyzeSourceImage() {
@@ -719,11 +828,227 @@
             }
         }
 
+        function orderCorners(points) {
+            const withSum = points.map(pt => ({ ...pt, sum: pt.x + pt.y, diff: pt.x - pt.y }));
+            const sorted = [...withSum].sort((a, b) => a.sum !== b.sum ? a.sum - b.sum : a.diff - b.diff);
+            const topLeft = sorted[0];
+            const bottomRight = sorted[sorted.length - 1];
+            const byDiff = [...withSum].sort((a, b) => a.diff !== b.diff ? b.diff - a.diff : a.sum - b.sum);
+            const topRight = byDiff[0];
+            const bottomLeft = byDiff[byDiff.length - 1];
+            return [
+                { x: topLeft.x, y: topLeft.y },
+                { x: topRight.x, y: topRight.y },
+                { x: bottomRight.x, y: bottomRight.y },
+                { x: bottomLeft.x, y: bottomLeft.y }
+            ];
+        }
+
+        function polygonArea(points) {
+            let area = 0;
+            for (let i = 0; i < points.length; i++) {
+                const j = (i + 1) % points.length;
+                area += points[i].x * points[j].y - points[j].x * points[i].y;
+            }
+            return Math.abs(area / 2);
+        }
+
+        function normalizeAndValidateCorners(points, imgW, imgH) {
+            if (!Array.isArray(points) || points.length !== 4) return null;
+            const clamped = points.map((pt) => ({
+                x: clamp(Number(pt.x), 0, imgW),
+                y: clamp(Number(pt.y), 0, imgH)
+            }));
+            const ordered = orderCorners(clamped);
+            const areaRatio = polygonArea(ordered) / (imgW * imgH);
+            if (!Number.isFinite(areaRatio) || areaRatio < AUTO_CROP_MIN_AREA_RATIO) return null;
+            const topW = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
+            const rightH = Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y);
+            if (topW < AUTO_CROP_MIN_EDGE_PX || rightH < AUTO_CROP_MIN_EDGE_PX) return null;
+            return ordered;
+        }
+
+        function getHeuristicDocumentFallback() {
+            const srcW = rawImage.naturalWidth || rawImage.width;
+            const srcH = rawImage.naturalHeight || rawImage.height;
+            if (!srcW || !srcH) return null;
+
+            const maxDim = 280;
+            const scale = Math.max(srcW / maxDim, srcH / maxDim, 1);
+            const w = Math.max(40, Math.round(srcW / scale));
+            const h = Math.max(40, Math.round(srcH / scale));
+            const probeCanvas = document.createElement('canvas');
+            probeCanvas.width = w;
+            probeCanvas.height = h;
+            const pCtx = probeCanvas.getContext('2d', { willReadFrequently: true });
+            pCtx.drawImage(rawImage, 0, 0, w, h);
+            const data = pCtx.getImageData(0, 0, w, h).data;
+            const lum = (idx) => (0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]);
+
+            let minX = w;
+            let minY = h;
+            let maxX = 0;
+            let maxY = 0;
+            let hits = 0;
+            const interiorPixelCount = (w - 2) * (h - 2);
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const i = (y * w + x) * 4;
+                    const gx = Math.abs(lum(i + 4) - lum(i - 4));
+                    const gy = Math.abs(lum(i + w * 4) - lum(i - w * 4));
+                    const mag = gx + gy;
+                    if (mag > AUTO_CROP_HEURISTIC_EDGE_THRESHOLD) {
+                        hits++;
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+
+            if (hits < (interiorPixelCount * AUTO_CROP_HEURISTIC_MIN_HIT_RATIO)) return null;
+            if (maxX <= minX || maxY <= minY) return null;
+            const padX = Math.round((maxX - minX) * 0.08);
+            const padY = Math.round((maxY - minY) * 0.08);
+            const cornersDetected = [
+                { x: clamp(minX - padX, 0, w) * scale, y: clamp(minY - padY, 0, h) * scale },
+                { x: clamp(maxX + padX, 0, w) * scale, y: clamp(minY - padY, 0, h) * scale },
+                { x: clamp(maxX + padX, 0, w) * scale, y: clamp(maxY + padY, 0, h) * scale },
+                { x: clamp(minX - padX, 0, w) * scale, y: clamp(maxY + padY, 0, h) * scale }
+            ];
+            return normalizeAndValidateCorners(cornersDetected, srcW, srcH);
+        }
+
+        function detectFrameAttempt(cannyLow, cannyHigh) {
+            let src, gray, edges, contours, hierarchy, bestContour;
+            try {
+                const maxDim = 500;
+                const srcW = rawImage.naturalWidth || rawImage.width;
+                const srcH = rawImage.naturalHeight || rawImage.height;
+                let scale = Math.max(srcW / maxDim, srcH / maxDim);
+                if (scale < 1) scale = 1;
+                const rw = Math.round(srcW / scale);
+                const rh = Math.round(srcH / scale);
+                const tmpCanvas = document.createElement('canvas');
+                tmpCanvas.width = rw;
+                tmpCanvas.height = rh;
+                const tmpCtx = tmpCanvas.getContext('2d');
+                tmpCtx.drawImage(rawImage, 0, 0, rw, rh);
+
+                src = cv.imread(tmpCanvas);
+                gray = new cv.Mat();
+                edges = new cv.Mat();
+                contours = new cv.MatVector();
+                hierarchy = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+                cv.Canny(gray, edges, cannyLow, cannyHigh);
+
+                const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+                cv.dilate(edges, edges, kernel, new cv.Point(-1, -1), 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
+                kernel.delete();
+                cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+                let maxArea = 0;
+                for (let i = 0; i < contours.size(); ++i) {
+                    const cnt = contours.get(i);
+                    const area = cv.contourArea(cnt);
+                    if (area > (rw * rh * 0.1)) {
+                        const perimeter = cv.arcLength(cnt, true);
+                        const approx = new cv.Mat();
+                        cv.approxPolyDP(cnt, approx, 0.05 * perimeter, true);
+                        if (approx.rows === 4 && area > maxArea) {
+                            maxArea = area;
+                            if (bestContour) bestContour.delete();
+                            bestContour = approx.clone();
+                        }
+                        approx.delete();
+                    }
+                }
+
+                if (!bestContour) return null;
+                const points = [];
+                for (let i = 0; i < 4; i++) {
+                    points.push({
+                        x: bestContour.data32S[i * 2] * scale,
+                        y: bestContour.data32S[i * 2 + 1] * scale
+                    });
+                }
+                return normalizeAndValidateCorners(points, srcW, srcH);
+            } finally {
+                if (src) src.delete();
+                if (gray) gray.delete();
+                if (edges) edges.delete();
+                if (contours) contours.delete();
+                if (hierarchy) hierarchy.delete();
+                if (bestContour) bestContour.delete();
+            }
+        }
+
+        async function autoDetectFrame() {
+            if (isAutoCropRunning) return;
+            if (rawImage.naturalWidth <= 0 || rawImage.naturalHeight <= 0 || !sourceCanvas.width || !sourceCanvas.height) {
+                return;
+            }
+
+            isAutoCropRunning = true;
+            autoCropStatus = 'running';
+            updateAutoCropButtonState();
+
+            try {
+                if (!window.cvReady) {
+                    const heuristicCorners = getHeuristicDocumentFallback();
+                    corners = heuristicCorners || corners;
+                    drawSource();
+                    setAutoCropBanner("ℹ️ IA indisponible : cadrage de secours appliqué. Ajustez si nécessaire.", 'info');
+                    autoCropStatus = 'fallback';
+                    return;
+                }
+
+                let detectedCorners = null;
+                for (let attempt = 0; attempt < AUTO_CROP_ATTEMPTS.length; attempt++) {
+                    const config = AUTO_CROP_ATTEMPTS[attempt];
+                    if (config.delayMs > 0) await wait(config.delayMs);
+                    detectedCorners = detectFrameAttempt(config.cannyLow, config.cannyHigh);
+                    if (detectedCorners) break;
+                }
+
+                if (!detectedCorners) {
+                    const heuristicCorners = getHeuristicDocumentFallback();
+                    if (heuristicCorners) {
+                        corners = heuristicCorners;
+                        drawSource();
+                        setAutoCropBanner("ℹ️ Cadrage estimé automatiquement. Vérifiez le cadre avant l'aperçu.", 'info');
+                    } else {
+                        resetPoints(false);
+                        setAutoCropBanner("ℹ️ Aucun cadrage fiable détecté. Cadre centré appliqué.", 'info');
+                    }
+                    autoCropStatus = 'fallback';
+                    return;
+                }
+
+                corners = detectedCorners;
+                drawSource();
+                hideAutoCropBanner();
+                autoCropStatus = 'success';
+            } catch (e) {
+                resetPoints(false);
+                setAutoCropBanner("ℹ️ Une erreur est survenue pendant le cadrage IA. Cadre centré appliqué.", 'error');
+                autoCropStatus = 'fallback';
+            } finally {
+                isAutoCropRunning = false;
+                updateAutoCropButtonState();
+            }
+        }
+
         // --- 2. MANIPULATION DES POINTS DE PERSPECTIVE ET CURSEURS ---
         function setupSourceCanvas() {
             sourceCanvas.width = rawImage.width;
             sourceCanvas.height = rawImage.height;
             drawSource();
+            updateAutoCropButtonState();
         }
 
         function resetPoints(autoWarp = false) {
@@ -739,6 +1064,7 @@
                 { x: padX, y: h - padY }      // Bas-Gauche
             ];
             drawSource();
+            hideAutoCropBanner();
             if (autoWarp) triggerManualWarp();
         }
 
@@ -924,6 +1250,8 @@
                 setupSourceCanvas();
                 analyzeSourceImage();
                 resetPoints(false);
+                hideResultAlert();
+                autoDetectFrame();
             };
             rawImage.src = tempCanvas.toDataURL();
         }
@@ -992,14 +1320,14 @@
                 }
             }
             uCtx.putImageData(outImgData, 0, 0);
-            applyBinarization();
+            applyAutoEnhanceIA();
         }
 
         // --- 4. BINARISATION ---
-        function applyBinarization() {
+        function applyBinarizationManual(forcedThreshold = null) {
             if (!unbinarizedCanvas.width) return;
 
-            const threshold = parseInt(document.getElementById('threshold').value);
+            const threshold = forcedThreshold !== null ? forcedThreshold : parseInt(document.getElementById('threshold').value);
             const uCtx = unbinarizedCanvas.getContext('2d');
             const imageData = uCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
             const data = imageData.data;
@@ -1019,6 +1347,36 @@
             updateQualityControl(blackPixels, totalPixels);
         }
 
+        function applyAutoEnhanceIA() {
+            if (!unbinarizedCanvas.width) return;
+
+            if (window.cvReady) {
+                let src, gray, binary;
+                try {
+                    src = cv.imread(unbinarizedCanvas);
+                    gray = new cv.Mat();
+                    binary = new cv.Mat();
+                    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                    cv.GaussianBlur(gray, gray, new cv.Size(3, 3), 0);
+                    cv.adaptiveThreshold(gray, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 25, 10);
+                    cv.imshow('result-canvas', binary);
+                    refreshQualityFromResultCanvas();
+                    hideResultAlert();
+                    return;
+                } catch (e) {
+                    setResultAlert("⚠️ Auto-réglage IA indisponible, bascule sur le réglage manuel.", 'warning');
+                } finally {
+                    if (src) src.delete();
+                    if (gray) gray.delete();
+                    if (binary) binary.delete();
+                }
+            } else {
+                setResultAlert("ℹ️ IA non chargée : réglage manuel appliqué automatiquement.", 'info');
+            }
+
+            applyBinarizationManual(130);
+        }
+
         function updateQualityControl(blackPixels, totalPixels) {
             const inkPercentage = ((blackPixels / totalPixels) * 100).toFixed(1);
             qcRatio.textContent = `Encre : ${inkPercentage}%`;
@@ -1035,6 +1393,19 @@
                 qcBadge.textContent = 'Ombres / Surconsommation';
                 qcBadge.classList.add('qc-warning');
             }
+        }
+
+        function refreshQualityFromResultCanvas() {
+            if (!resultCanvas.width || !resultCanvas.height) return;
+            const imageData = rCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
+            const data = imageData.data;
+            let blackPixels = 0;
+            const totalPixels = resultCanvas.width * resultCanvas.height;
+            for (let i = 0; i < data.length; i += 4) {
+                const luminance = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                if (luminance < 128) blackPixels++;
+            }
+            updateQualityControl(blackPixels, totalPixels);
         }
 
         // --- 5. FUSION MULTI-PAGES & REORDONNEMENT ---
@@ -1066,6 +1437,9 @@
             unbinarizedCanvas = document.createElement('canvas');
             
             sourceAlertBanner.style.display = 'none';
+            hideAutoCropBanner();
+            hideResultAlert();
+            updateAutoCropButtonState();
             qcBadge.textContent = 'En attente';
             qcBadge.className = 'qc-status qc-warning';
             qcRatio.textContent = 'Encre : --%';
