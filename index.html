@@ -576,11 +576,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="input-field">
                         <label for="doc-type">Type de document</label>
-                        <input type="text" id="doc-type" placeholder="Nature du document...">
+                        <input type="text" id="doc-type" placeholder="Nature du document..." oninput="this.value = this.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9\s\-]/g, '')">
                     </div>
                     <div class="input-field">
                         <label for="agent-name">Nom Prénom Agent</label>
-                        <input type="text" id="agent-name" placeholder="Nom et prénom...">
+                        <input type="text" id="agent-name" placeholder="Nom et prénom..." oninput="this.value = this.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9\s\-]/g, '')">
                     </div>
                 </div>
             </div>
