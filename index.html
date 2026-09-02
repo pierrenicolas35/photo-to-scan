@@ -908,7 +908,17 @@
                 }
             }
 
-            if (hits < (interiorPixelCount * AUTO_CROP_HEURISTIC_MIN_HIT_RATIO)) return null;
+            if (hits < (interiorPixelCount * AUTO_CROP_HEURISTIC_MIN_HIT_RATIO)) {
+                // If not enough hits, fallback to a 10% padded centered rectangle rather than nothing
+                const padX = Math.round(w * 0.1);
+                const padY = Math.round(h * 0.1);
+                return [
+                    { x: padX * scale, y: padY * scale },
+                    { x: (w - padX) * scale, y: padY * scale },
+                    { x: (w - padX) * scale, y: (h - padY) * scale },
+                    { x: padX * scale, y: (h - padY) * scale }
+                ];
+            }
             if (maxX <= minX || maxY <= minY) return null;
             const padX = Math.round((maxX - minX) * 0.08);
             const padY = Math.round((maxY - minY) * 0.08);
@@ -952,20 +962,36 @@
                 cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
                 let maxArea = 0;
+                let contourList = [];
                 for (let i = 0; i < contours.size(); ++i) {
-                    const cnt = contours.get(i);
-                    const area = cv.contourArea(cnt);
-                    if (area > (rw * rh * 0.1)) {
-                        const perimeter = cv.arcLength(cnt, true);
-                        const approx = new cv.Mat();
-                        cv.approxPolyDP(cnt, approx, 0.05 * perimeter, true);
-                        if (approx.rows === 4 && area > maxArea) {
-                            maxArea = area;
-                            if (bestContour) bestContour.delete();
-                            bestContour = approx.clone();
+                    contourList.push({ index: i, area: cv.contourArea(contours.get(i)) });
+                }
+                contourList.sort((a, b) => b.area - a.area);
+
+                for (let i = 0; i < contourList.length; ++i) {
+                    const cnt = contours.get(contourList[i].index);
+                    const area = contourList[i].area;
+
+                    if (area < (rw * rh * 0.05)) break;
+
+                    const perimeter = cv.arcLength(cnt, true);
+                    const approx = new cv.Mat();
+
+                    let found = false;
+                    for (let ep = 0.01; ep <= 0.08; ep += 0.01) {
+                        cv.approxPolyDP(cnt, approx, ep * perimeter, true);
+                        if (approx.rows === 4) {
+                            if (area > maxArea) {
+                                maxArea = area;
+                                if (bestContour) bestContour.delete();
+                                bestContour = approx.clone();
+                                found = true;
+                            }
+                            break;
                         }
-                        approx.delete();
                     }
+                    approx.delete();
+                    if (found) break;
                 }
 
                 if (!bestContour) return null;
