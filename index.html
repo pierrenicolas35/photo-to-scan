@@ -484,9 +484,11 @@
                     <div>Luminosité : <strong id="sqc-brightness-val">--</strong></div>
                     <span id="sqc-badge" class="qc-status qc-optimal" style="margin-left: auto;">Diagnostic</span>
                 </div>
-                <button type="button" id="btn-auto-crop" class="magic" onclick="autoDetectFrame()" disabled style="margin-bottom: 8px;">
-                    ⏳ Chargement de l'IA...
-                </button>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <button type="button" id="btn-auto-crop" class="magic" onclick="autoDetectFrame()" disabled style="flex: none;">
+                        ⏳ Chargement de l'IA...
+                    </button>
+                </div>
                 <div id="auto-crop-banner"></div>
 
                 <div class="crop-wrapper">
@@ -716,7 +718,7 @@
 
         function updateAutoCropButtonState() {
             const btn = document.getElementById('btn-auto-crop');
-            const hasImage = rawImage.naturalWidth > 0 && rawImage.naturalHeight > 0;
+            const hasImage = sourceCanvas.width > 0 && sourceCanvas.height > 0;
             btn.disabled = !hasImage || isAutoCropRunning;
             if (isAutoCropRunning) {
                 btn.innerHTML = '⏳ Analyse en cours...';
@@ -869,8 +871,8 @@
         }
 
         function getHeuristicDocumentFallback() {
-            const srcW = rawImage.naturalWidth || rawImage.width;
-            const srcH = rawImage.naturalHeight || rawImage.height;
+            const srcW = sourceCanvas.width;
+            const srcH = sourceCanvas.height;
             if (!srcW || !srcH) return null;
 
             const maxDim = 280;
@@ -935,8 +937,8 @@
             let src, gray, edges, contours, hierarchy, bestContour;
             try {
                 const maxDim = 500;
-                const srcW = rawImage.naturalWidth || rawImage.width;
-                const srcH = rawImage.naturalHeight || rawImage.height;
+                const srcW = sourceCanvas.width;
+                const srcH = sourceCanvas.height;
                 let scale = Math.max(srcW / maxDim, srcH / maxDim);
                 if (scale < 1) scale = 1;
                 const rw = Math.round(srcW / scale);
@@ -1015,7 +1017,7 @@
 
         async function autoDetectFrame() {
             if (isAutoCropRunning) return;
-            if (rawImage.naturalWidth <= 0 || rawImage.naturalHeight <= 0 || !sourceCanvas.width || !sourceCanvas.height) {
+            if (!sourceCanvas.width || !sourceCanvas.height) {
                 return;
             }
 
@@ -1073,7 +1075,6 @@
         function setupSourceCanvas() {
             sourceCanvas.width = rawImage.width;
             sourceCanvas.height = rawImage.height;
-            drawSource();
             updateAutoCropButtonState();
         }
 
