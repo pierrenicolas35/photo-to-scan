@@ -1,0 +1,26 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Application web client-side pour transformer des photos de justificatifs en PDF.",
+  "main": "test_rotate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pierrenicolas35/photo-to-scan.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/pierrenicolas35/photo-to-scan/issues"
+  },
+  "homepage": "https://github.com/pierrenicolas35/photo-to-scan#readme",
+  "dependencies": {
+    "canvas": "^3.2.3",
+    "http-server": "^14.1.1",
+    "playwright": "^1.62.1"
+  }
+}

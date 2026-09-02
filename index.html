@@ -424,7 +424,7 @@
         button.outline { background-color: transparent; border: 1.5px solid #6c757d; color: #6c757d; }
         button.outline:hover { background-color: #6c757d; color: white; }
         button.icon-btn-compact { 
-            flex: 0; 
+            flex: 0 0 auto;
             padding: 6px 10px; 
             min-width: 38px;
             height: 36px;
@@ -1260,27 +1260,44 @@
             const tempCanvas = document.createElement('canvas');
             const tCtx = tempCanvas.getContext('2d');
             
+            const oldW = rawImage.width;
+            const oldH = rawImage.height;
+
             if (Math.abs(degrees) === 90) {
-                tempCanvas.width = rawImage.height;
-                tempCanvas.height = rawImage.width;
+                tempCanvas.width = oldH;
+                tempCanvas.height = oldW;
             } else {
-                tempCanvas.width = rawImage.width;
-                tempCanvas.height = rawImage.height;
+                tempCanvas.width = oldW;
+                tempCanvas.height = oldH;
             }
+
+            tCtx.fillStyle = 'white';
+            tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
             tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
             tCtx.rotate((degrees * Math.PI) / 180);
-            tCtx.drawImage(rawImage, -rawImage.width / 2, -rawImage.height / 2);
+            tCtx.drawImage(rawImage, -oldW / 2, -oldH / 2);
+
+            let newCorners = [];
+            if (degrees === 90) {
+                const rotated = corners.map(pt => ({ x: oldH - pt.y, y: pt.x }));
+                newCorners = [rotated[3], rotated[0], rotated[1], rotated[2]];
+            } else if (degrees === -90) {
+                const rotated = corners.map(pt => ({ x: pt.y, y: oldW - pt.x }));
+                newCorners = [rotated[1], rotated[2], rotated[3], rotated[0]];
+            } else {
+                newCorners = corners;
+            }
 
             rawImage = new Image();
             rawImage.onload = () => {
                 setupSourceCanvas();
                 analyzeSourceImage();
-                resetPoints(false);
+                corners = newCorners;
+                drawSource();
                 hideResultAlert();
-                autoDetectFrame();
             };
-            rawImage.src = tempCanvas.toDataURL();
+            rawImage.src = tempCanvas.toDataURL('image/jpeg', 1.0);
         }
 
         // --- 3. APERÇU ET REDRESSEMENT ---
