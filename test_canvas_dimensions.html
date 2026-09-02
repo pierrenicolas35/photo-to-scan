@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c"></canvas>
+<script>
+    let img = new Image();
+    img.onload = () => {
+        console.log("img loaded:", img.width, img.height);
+        document.getElementById('c').width = img.width;
+        document.getElementById('c').height = img.height;
+        let c = document.getElementById('c');
+        console.log("canvas:", c.width, c.height);
+    };
+    img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+</script>
+</body>
+</html>
