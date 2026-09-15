@@ -1634,11 +1634,16 @@
                 const blob = doc.pdf.output('blob');
                 const file = new File([blob], doc.fileName, { type: 'application/pdf' });
 
+                const rawDocType = document.getElementById('doc-type').value.trim() || 'Document';
+                const rawAgentName = document.getElementById('agent-name').value.trim() || 'Anonyme';
+                const shareTitle = `${rawDocType} ${rawAgentName}`;
+                const shareText = `Bonjour, je te transmets le ${rawDocType} ${rawAgentName}`;
+
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: doc.fileName,
-                        text: "Veuillez trouver le document ci-joint."
+                        title: shareTitle,
+                        text: shareText
                     });
                     resetApp();
                 } else {
