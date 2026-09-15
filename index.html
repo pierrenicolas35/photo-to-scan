@@ -587,10 +587,14 @@
                 </div>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button type="button" class="success" onclick="exportPDF()">
+            <div style="display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="success" onclick="exportPDF()" style="flex: 1; min-width: 200px;">
                     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    4. Télécharger le document (PDF A4)
+                    Télécharger le PDF
+                </button>
+                <button type="button" class="success" onclick="emailPDF()" style="flex: 1; min-width: 200px; background-color: #007bff;">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    Envoyer par e-mail
                 </button>
             </div>
         </div>
@@ -1566,7 +1570,7 @@
             return `${docType}_${agentName}_${dateStr}.pdf`;
         }
 
-        function exportPDF() {
+        function generatePDFDocument() {
             let pagesToExport = [];
 
             if (pdfPageQueue.length > 0) {
@@ -1579,7 +1583,7 @@
                 });
             } else {
                 alert("Veuillez d'abord charger un document et générer son aperçu.");
-                return;
+                return null;
             }
 
             const { jsPDF } = window.jspdf;
@@ -1609,10 +1613,44 @@
             });
 
             const fileName = formatFilename();
-            pdf.save(fileName);
+            return { pdf, fileName };
+        }
+
+        function exportPDF() {
+            const doc = generatePDFDocument();
+            if (!doc) return;
+
+            doc.pdf.save(doc.fileName);
 
             // Réinitialisation complète du site après téléchargement
             resetApp();
+        }
+
+        async function emailPDF() {
+            const doc = generatePDFDocument();
+            if (!doc) return;
+
+            try {
+                const blob = doc.pdf.output('blob');
+                const file = new File([blob], doc.fileName, { type: 'application/pdf' });
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: doc.fileName,
+                        text: "Veuillez trouver le document ci-joint."
+                    });
+                    resetApp();
+                } else {
+                    alert("Le partage par e-mail de fichiers n'est pas supporté par votre navigateur. Veuillez télécharger le PDF.");
+                }
+            } catch (error) {
+                console.error("Erreur lors du partage :", error);
+                // Si l'utilisateur annule, ce n'est pas une vraie erreur
+                if (error.name !== 'AbortError') {
+                    alert("Erreur lors du partage du fichier.");
+                }
+            }
         }
 
         function adjustZoom(delta) {
