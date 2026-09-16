@@ -23,6 +23,10 @@
     </script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js"></script>
 
+    <!-- PDF.js pour la lecture de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";</script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -443,6 +447,32 @@
             font-weight: 600;
             letter-spacing: 0.3px;
         }
+        .pdf-page-thumb {
+            border: 2px solid transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .pdf-page-thumb.selected {
+            border-color: var(--success);
+        }
+        .pdf-page-thumb img {
+            display: block;
+            max-width: 150px;
+            height: auto;
+        }
+        .pdf-page-thumb .page-number {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
     </style>
 </head>
 <body>
@@ -467,13 +497,26 @@
             </div>
 
             <!-- Zone de Drop -->
+            <!-- Modal PDF Selection -->
+            <div id="pdf-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                <div style="background: white; padding: 20px; border-radius: 8px; width: 80%; max-height: 80vh; display: flex; flex-direction: column;">
+                    <h3 style="margin-top: 0;">Sélectionnez les pages à importer</h3>
+                    <div id="pdf-pages-container" style="display: flex; flex-wrap: wrap; gap: 10px; overflow-y: auto; flex: 1; margin-bottom: 20px;">
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="secondary" onclick="closePdfModal()">Annuler</button>
+                        <button type="button" class="primary" onclick="confirmPdfSelection()">Valider la sélection</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="drop-zone">
                 <svg viewBox="0 0 24 24" style="width: 44px; height: 44px; fill: var(--primary); margin-bottom: 10px;">
                     <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
                 </svg>
                 <p style="margin:0; font-weight: 700; font-size: 0.95rem; color: #2c3e50;">Glissez la photo du document ici</p>
                 <p style="margin:4px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">ou cliquez pour parcourir les fichiers</p>
-                <input type="file" id="file-input" accept="image/*" style="display: none;">
+                <input type="file" id="file-input" accept="image/*,application/pdf" style="display: none;">
             </div>
 
             <div id="workspace">
@@ -612,6 +655,8 @@
         let activeEdge = -1;
         let dragStartPos = null;
         let dragStartCorners = null;
+        let pendingPdfPages = [];
+
         let isAutoCropRunning = false;
         let autoCropStatus = 'idle';
 
@@ -665,7 +710,11 @@
             if (e.target.files.length > 0) loadFile(e.target.files[0]);
         });
 
-        function loadFile(file) {
+        async function loadFile(file) {
+            if (file.type === 'application/pdf') {
+                await loadPdfFile(file);
+                return;
+            }
             if (!file.type.startsWith('image/')) return;
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -678,6 +727,85 @@
                     hideResultAlert();
                     autoDetectFrame();
                 };
+                rawImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function loadPdfFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+            const numPages = pdf.numPages;
+            const container = document.getElementById('pdf-pages-container');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({scale: 1.5}); // Adjust scale as needed for thumbnails
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({canvasContext: ctx, viewport: viewport}).promise;
+
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = 'pdf-page-thumb selected';
+                thumbDiv.dataset.pageIndex = i - 1;
+                thumbDiv.innerHTML = `
+                    <img src="${canvas.toDataURL('image/jpeg', 0.8)}">
+                    <div class="page-number">${i}</div>
+                `;
+                thumbDiv.onclick = function() {
+                    this.classList.toggle('selected');
+                };
+                container.appendChild(thumbDiv);
+            }
+            document.getElementById('pdf-modal').style.display = 'flex';
+        }
+
+        function closePdfModal() {
+            document.getElementById('pdf-modal').style.display = 'none';
+            fileInput.value = '';
+        }
+
+        function confirmPdfSelection() {
+            const container = document.getElementById('pdf-pages-container');
+            const selectedThumbs = container.querySelectorAll('.pdf-page-thumb.selected');
+
+            pendingPdfPages = [];
+            selectedThumbs.forEach(thumb => {
+                const img = thumb.querySelector('img');
+                pendingPdfPages.push(img.src);
+            });
+
+            closePdfModal();
+
+            if (pendingPdfPages.length > 0) {
+                loadNextPendingPdfPage();
+            }
+        }
+
+        function loadNextPendingPdfPage() {
+            if (pendingPdfPages.length === 0) {
+                clearCurrentWorkspace();
+                return;
+            }
+            const dataUrl = pendingPdfPages.shift(); // take the first one out
+
+            rawImage.onload = () => {
+                dropZone.style.display = 'none';
+                workspace.style.display = 'flex';
+                setupSourceCanvas();
+                analyzeSourceImage();
+                resetPoints(false);
+                hideResultAlert();
+                autoDetectFrame();
+            };
+            rawImage.src = dataUrl;
+        }
+
+
                 rawImage.src = e.target.result;
             };
             reader.readAsDataURL(file);
@@ -1471,10 +1599,16 @@
             });
 
             renderQueueThumbnails();
-            clearCurrentWorkspace();
+
+            if (pendingPdfPages && pendingPdfPages.length > 0) {
+                loadNextPendingPdfPage();
+            } else {
+                clearCurrentWorkspace();
+            }
         }
 
         function clearCurrentWorkspace() {
+
             workspace.style.display = 'none';
             dropZone.style.display = 'flex';
             fileInput.value = '';
